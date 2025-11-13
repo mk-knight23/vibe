@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* Vibe Code CLI v2 command router */
-const { chatCompletion, getModelDefaults, loadConfig, saveConfig, encodeImageToDataUrl, TOP_FREE_MODELS } = require('../lib/openrouter.cjs');
+const { chatCompletion, getModelDefaults, loadConfig, saveConfig, encodeImageToDataUrl, listTopFreeModels } = require('../lib/openrouter.cjs');
 const { plan, fix, saveSession, loadLatestSession, startWatcher } = require('../lib/agent.cjs');
 const path = require('path');
 const fs = require('fs');
@@ -34,18 +34,29 @@ async function main(argv) {
     }
     case 'run': {
       const yolo = args.includes('--yolo');
-      console.log(pc.gray(`Autonomous run${yolo ? ' (yolo)' : ''} - TODO implement write→test→commit loop`));
+      const res = await require('../lib/agent.cjs').runAutonomous({ yolo });
+      console.log(pc.gray(`Run status: ${res.status}`));
       break;
     }
     case 'model': {
       const sub = args[0];
       if (sub === 'list') {
-        const { topFreeModels, defaultModel } = getModelDefaults();
+        const { defaultModel, models } = listTopFreeModels();
         console.log('Default:', defaultModel);
-        topFreeModels.forEach((m,i)=>console.log(`${i+1}. ${m}`));
+        models.forEach((m,i)=>{
+          const mark = m.id===defaultModel? '*':' ';
+          const info = m.ctx? ` (${m.ctx.toLocaleString()} ctx)` : '';
+          console.log(`${mark} ${i+1}. ${m.id}${info}${m.note? ' - '+m.note:''}`);
+        });
       } else if (sub === 'use') {
         const id = args[1];
         if (!id) return console.log('Usage: vibe model use <modelId>');
+        const { models } = listTopFreeModels();
+        const valid = models.some(m=>m.id===id);
+        if (!valid) {
+          console.log('Invalid model. Use `vibe model list` to see allowed free models.');
+          return;
+        }
         cfg.openrouter.defaultModel = id;
         saveConfig(cfg);
         console.log(pc.green(`Default model set to ${id}`));
