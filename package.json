@@ -1,0 +1,59 @@
+{
+  "name": "vibe-cli",
+  "private": false,
+  "version": "1.0.0",
+  "description": "CLI to chat with OpenRouter free models and Claude Code–style tooling.",
+  "keywords": [
+    "openrouter",
+    "cli",
+    "chat",
+    "ai",
+    "llm"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourname/vibe-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourname/vibe-cli/issues"
+  },
+  "homepage": "https://github.com/mk-knight23/vibe-cli#readme",
+  "author": "mk-knight23 <noreply@users.noreply.github.com>",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14"
+  },
+  "files": [
+    "cli.cjs",
+    "tools.cjs",
+    "README.md",
+    "LICENSE",
+    "package.json"
+  ],
+  "bin": {
+    "vibe": "cli.cjs"
+  },
+  "scripts": {
+    "build:bin": "pkg -t node18-linux-x64,node18-macos-x64,node18-win-x64 --out-path dist cli.cjs",
+    "release:check": "node -e \"console.log('Tag to release, e.g., v1.0.0')\"",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node cli.cjs",
+    "dev": "next dev",
+    "build": "next build"
+  },
+  "type": "module",
+  "dependencies": {
+    "axios": "^1.13.2",
+    "chalk": "^5.6.2",
+    "fast-glob": "^3.3.3",
+    "inquirer": "^12.11.1",
+    "next": "^16.0.2",
+    "ora": "^9.0.0",
+    "picocolors": "^1.1.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  }
+}
