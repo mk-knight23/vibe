@@ -1,7 +1,7 @@
 {
   "name": "vibe-cli",
   "private": false,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "CLI to chat with OpenRouter free models and Claude Code–style tooling.",
   "keywords": [
     "openrouter",
@@ -21,21 +21,27 @@
   "author": "mk-knight23 <noreply@users.noreply.github.com>",
   "license": "MIT",
   "engines": {
-    "node": ">=14"
+    "node": ">=18"
   },
   "files": [
     "cli.cjs",
+    "bin/vibe.cjs",
+    "lib/openrouter.cjs",
+    "lib/agent.cjs",
+    "plugins/",
+    "themes/",
+    "sessions/",
     "tools.cjs",
     "README.md",
     "LICENSE",
     "package.json"
   ],
   "bin": {
-    "vibe": "cli.cjs"
+    "vibe": "bin/vibe.cjs"
   },
   "scripts": {
     "smoke": "node scripts/smoke.cjs",
-    "build:bin": "pkg -t node18-linux-x64,node18-macos-x64,node18-win-x64 --out-path dist cli.cjs",
+    "build:bin": "pkg -t node18-linux-x64,node18-macos-x64,node18-win-x64 --out-path dist cli.cjs && mv dist/cli-linux dist/cli-linux || true && mv dist/cli-macos dist/cli-macos || true && mv dist/cli-win.exe dist/cli-win.exe || true",
     "release:check": "node -e \"console.log('Tag to release, e.g., v1.0.0')\"",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node cli.cjs",
@@ -46,14 +52,20 @@
   "dependencies": {
     "axios": "^1.13.2",
     "chalk": "^5.6.2",
+    "chokidar": "^3.6.0",
+    "conf": "^13.0.0",
     "fast-glob": "^3.3.3",
+    "fs-extra": "^11.2.0",
     "inquirer": "^12.11.1",
     "marked": "^17.0.0",
     "next": "^16.0.2",
+    "node-fetch": "^3.3.2",
     "ora": "^9.0.0",
     "picocolors": "^1.1.1",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "sharp": "^0.33.5",
+    "simple-git": "^3.27.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.17",

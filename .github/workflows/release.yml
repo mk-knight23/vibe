@@ -17,17 +17,18 @@ jobs:
         with:
           node-version: 18
       - run: npm ci || npm i
+      - run: npm run smoke || true
       - run: npm run build:bin
       - name: Rename artifacts
         shell: bash
         run: |
           mkdir -p upload
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            mv dist/cli ${GITHUB_WORKSPACE}/upload/vibe-linux-x64
+            mv dist/cli-linux ${GITHUB_WORKSPACE}/upload/vibe-linux-x64
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            mv dist/cli ${GITHUB_WORKSPACE}/upload/vibe-macos-x64
+            mv dist/cli-macos ${GITHUB_WORKSPACE}/upload/vibe-macos-x64
           else
-            mv dist/cli.exe ${GITHUB_WORKSPACE}/upload/vibe-win-x64.exe
+            mv dist/cli-win.exe ${GITHUB_WORKSPACE}/upload/vibe-win-x64.exe
           fi
       - name: Release
         uses: softprops/action-gh-release@v2
