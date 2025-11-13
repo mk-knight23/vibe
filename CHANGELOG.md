@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.0.3 (2025-11-14)
+- Fix: GitHub Actions permission to publish releases (permissions: contents: write)
+
 ## v1.0.2 (2025-11-14)
 - Fix GitHub Actions release artifacts to match pkg outputs (cli-linux, cli-macos, cli-win.exe)
 - Add smoke test step to Release workflow
