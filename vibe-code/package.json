@@ -2,7 +2,7 @@
   "name": "vibe-code",
   "displayName": "Vibe Code",
   "description": "Vibe Code: Lightweight VS Code AI assistant (chat + diffs + orchestrator) using ONLY OpenRouter free models.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "publisher": "mk-knight23",
   "repository": {
     "type": "git",
