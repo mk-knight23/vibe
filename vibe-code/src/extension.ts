@@ -1,549 +1,916 @@
-import * as vscode from 'vscode';
-import { join } from 'path';
-import { ChatViewProvider } from './chatProvider';
-import { QuickChatViewProvider } from './quickChatProvider';
-import { LLMService, FREE_MODELS, buildSystemPrompt, ChatMessage, getOpenRouterApiKey } from './llmService';
-import { MemoryBank } from './memory';
-import { Orchestrator } from './orchestrator';
-import { API as GitAPI, GitExtension } from './git.d';
 
-/**
- * Activation wires:
- *  - LLMService (streaming + token usage)
- *  - MemoryBank (persistent memory)
- *  - Orchestrator (task tree + retries)
- *  - ChatViewProvider (webview sidebar)
- *
- * Also registers commands for:
- *  - Mode switching
- *  - Diff apply / rollback
- *  - Regeneration
- *  - Architect quick switch
- *  - Memory injection
- *  - Orchestrator planning/execution
- */
+import * as vscode from "vscode";
 
-let chatProvider: ChatViewProvider | undefined;
-let quickChatProvider: QuickChatViewProvider | undefined;
-let llmService: LLMService | undefined;
-let memoryBank: MemoryBank | undefined;
-let orchestrator: Orchestrator | undefined;
-let outputChannel: vscode.OutputChannel;
+type VibeModeId =
+  | "architect"
+  | "code"
+  | "ask"
+  | "debug"
+  | "orchestrator"
+  | "project-research";
 
-/**
- * Quick mode cycle order.
- */
-const MODE_SEQUENCE = [
-  'code',
-  'architect',
-  'ask',
-  'debug',
-  'orchestrator',
+interface VibeMode {
+  id: VibeModeId;
+  label: string;
+  shortLabel: string;
+  description: string;
+}
+
+interface Persona {
+  id: string;
+  label: string;
+  description: string;
+  mode: VibeModeId | "any";
+}
+
+interface ChatMessage {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
+interface OpenRouterConfig {
+  apiKey: string;
+  defaultModel: string;
+  autoApproveUnsafeOps: boolean;
+  maxContextFiles: number;
+}
+
+interface OpenRouterResponse {
+  content: string;
+}
+
+const MODES: VibeMode[] = [
+  {
+    id: "architect",
+    label: "Architect",
+    shortLabel: "🏗️",
+    description: "Plan and design before implementation",
+  },
+  {
+    id: "code",
+    label: "Code",
+    shortLabel: "💻",
+    description: "Write, modify, and refactor code",
+  },
+  {
+    id: "ask",
+    label: "Ask",
+    shortLabel: "❓",
+    description: "Get answers and explanations",
+  },
+  {
+    id: "debug",
+    label: "Debug",
+    shortLabel: "🪲",
+    description: "Diagnose and fix software issues",
+  },
+  {
+    id: "orchestrator",
+    label: "Orchestrator",
+    shortLabel: "🪃",
+    description: "Coordinate tasks across modes",
+  },
+  {
+    id: "project-research",
+    label: "Project Research",
+    shortLabel: "🔍",
+    description: "Investigate and analyze codebase",
+  },
 ];
 
-/**
- * Provide status bar token usage indicator.
- */
-let tokenStatusItem: vscode.StatusBarItem | undefined;
+const PERSONAS: Persona[] = [
+  {
+    id: "balanced",
+    label: "Balanced",
+    description: "General purpose assistant with safe defaults.",
+    mode: "any",
+  },
+  {
+    id: "system-architect",
+    label: "System Architect",
+    description: "High-level design and trade-off analysis.",
+    mode: "architect",
+  },
+  {
+    id: "pair-programmer",
+    label: "Pair Programmer",
+    description: "Hands-on coding partner for implementation.",
+    mode: "code",
+  },
+  {
+    id: "debug-doctor",
+    label: "Debug Doctor",
+    description: "Root cause analysis and fixes.",
+    mode: "debug",
+  },
+  {
+    id: "research-analyst",
+    label: "Research Analyst",
+    description: "Deep codebase and dependency research.",
+    mode: "project-research",
+  },
+];
 
-export function activate(context: vscode.ExtensionContext) {
-  // 1. Create the central OutputChannel for debugging
-  outputChannel = vscode.window.createOutputChannel('Vibe');
-  log('Vibe AI extension activating...');
+const TOP_FREE_MODELS: string[] = [
+  "z-ai/glm-4.5-air:free",
+  "tng/deepseek-r1t2-chimera:free",
+  "tng/deepseek-r1t-chimera:free",
+  "kwaipilot/kat-coder-pro-v1:free",
+  "deepseek/deepseek-v3-0324:free",
+  "deepseek/r1-0528:free",
+  "qwen/qwen3-coder-480b-a35b:free",
+  "google/gemini-2.0-flash-exp:free",
+  "google/gemma-3-27b:free",
+];
 
-  try {
-    // 2. Instantiate all core services (singletons)
-    memoryBank = new MemoryBank(context);
-    llmService = new LLMService(context, outputChannel);
-    orchestrator = new Orchestrator(context, llmService, memoryBank);
+ // Minimal declaration so TypeScript accepts global fetch in Node 18+ (no DOM lib dependency).
+declare function fetch(input: unknown, init?: unknown): Promise<unknown>;
 
-    // 3. Register Chat WebviewView Provider
-    chatProvider = new ChatViewProvider(context, llmService, memoryBank, orchestrator, outputChannel);
+class VibeView implements vscode.WebviewViewProvider {
+  public static currentView: VibeView | undefined;
+
+  private view?: vscode.WebviewView;
+  private disposables: vscode.Disposable[] = [];
+  private currentMode: VibeModeId = "code";
+  private currentPersonaId = "balanced";
+  private currentModelId: string;
+  private messages: ChatMessage[] = [];
+
+  public static register(context: vscode.ExtensionContext) {
+    const provider = new VibeView(context);
     context.subscriptions.push(
-      vscode.window.registerWebviewViewProvider(
-        ChatViewProvider.VIEW_ID,
-        chatProvider,
-        {
-          webviewOptions: {
-            retainContextWhenHidden: true
-          }
-        }
-      )
+      vscode.window.registerWebviewViewProvider("vibe.vibePanel", provider)
     );
-
-    // 3b. Register Quick Chat (lightweight) WebviewView Provider
-    quickChatProvider = new QuickChatViewProvider(context, llmService, memoryBank, outputChannel);
-    context.subscriptions.push(
-      vscode.window.registerWebviewViewProvider(
-        QuickChatViewProvider.VIEW_ID,
-        quickChatProvider,
-        {
-          webviewOptions: {
-            retainContextWhenHidden: true
-          }
-        }
-      )
-    );
-
-    // 4. Register Orchestrator TreeView
-    const orchestratorProvider = orchestrator.getTreeProvider();
-    context.subscriptions.push(
-      vscode.window.registerTreeDataProvider(
-        'vibe.orchestratorView',
-        orchestratorProvider
-      )
-    );
-
-    // Register command to focus on chat view
-    context.subscriptions.push(
-      vscode.commands.registerCommand('vibe.focusChat', () => {
-        vscode.commands.executeCommand('vibe.chatView.focus');
-      })
-    );
-
-    // Register Configuration Change Listener
-    context.subscriptions.push(
-      vscode.workspace.onDidChangeConfiguration(event => {
-        // Corrected model config key from 'vibe.openRouter.model' -> 'vibe.model'
-        if (
-          event.affectsConfiguration('vibe.openRouter.apiKey') ||
-          event.affectsConfiguration('vibe.model')
-        ) {
-          log('Configuration changed (API key / model), reconfiguring LLM service...');
-          // TODO: reinitialize or update llmService params if needed
-        }
-        if (
-          event.affectsConfiguration('vibe.customModes') ||
-          event.affectsConfiguration('vibe.modes')
-        ) {
-          log('Modes configuration changed.');
-          chatProvider?.updateModes();
-        }
-      })
-    );
-
-  tokenStatusItem = vscode.window.createStatusBarItem(
-    vscode.StatusBarAlignment.Right,
-    100
-  );
-  // Status bar session token usage with GLM-4.5-Air optimization.
-  tokenStatusItem.text = 'Vibe Tokens: 0';
-  tokenStatusItem.tooltip = 'GLM-4.5-Air usage tracking (free tier). Parse x-openrouter-usage-estimated-tokens header.';
-  tokenStatusItem.show();
-  context.subscriptions.push(tokenStatusItem);
-
-  // Watch configuration changes to refresh memory limits/custom modes.
-  context.subscriptions.push(
-    vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration('vibe.memory') || e.affectsConfiguration('vibe.customModes')) {
-        memoryBank?.refreshConfig();
-        // Soft refresh: push assistant notice
-        chatProvider?.pushAssistant('Configuration updated (memory / custom modes).');
-      }
-    })
-  );
-
-  /**
-   * Commands
-   */
-  context.subscriptions.push(
-    vscode.commands.registerCommand('vibe.switchNextMode', () => {
-      cycleMode(1);
-    }),
-
-
-    vscode.commands.registerCommand('vibe.devDump', async () => {
-      const oc = vscode.window.createOutputChannel('Vibe-Diagnostics');
-      oc.show(true);
-      oc.appendLine('--- Vibe Diagnostics Dump ---');
-      oc.appendLine('Version: 0.1.2');
-      oc.appendLine('Workspace folders: ' + (vscode.workspace.workspaceFolders?.map(f=>f.name).join(', ') || 'none'));
-      oc.appendLine('Active Mode Context Key: ' + getContextMode());
-      oc.appendLine('Has chatProvider: ' + !!chatProvider);
-      oc.appendLine('Has orchestrator: ' + !!orchestrator);
-      oc.appendLine('Token usage: ' + (llmService?.getSessionTokenUsage() ?? 0));
-      try {
-        const chat = (chatProvider as any)?.chat as {role:string;content:string}[]|undefined;
-        oc.appendLine('Chat messages count: ' + (chat?.length ?? 0));
-      } catch (e:any) {
-        oc.appendLine('Chat access error: ' + e.message);
-      }
-      vscode.window.showInformationMessage('Vibe: Diagnostics dumped to Vibe-Diagnostics output channel.');
-    }),
-
-    vscode.commands.registerCommand('vibe.switchPrevMode', () => {
-      cycleMode(-1);
-    }),
-
-    vscode.commands.registerCommand('vibe.regenResponse', async () => {
-      chatProvider?.pushAssistant('Regenerating last response…');
-      // ChatViewProvider has internal regenerate command via webview; send message
-      sendWebviewMessage({ type: 'regenRequestFromCommand' });
-    }),
-
-    vscode.commands.registerCommand('vibe.switchToArchitect', () => {
-      sendWebviewMessage({ type: 'setMode', mode: 'architect' });
-      vscode.window.showInformationMessage('Vibe: Switched to Architect mode.');
-    }),
-
-    vscode.commands.registerCommand('vibe.applyDiff', async () => {
-      const list = chatProvider?.listDiffSuggestions() || [];
-      const unapplied = list.filter((d) => !d.applied);
-      if (unapplied.length === 0) {
-        vscode.window.showInformationMessage('Vibe: No unapplied diff suggestions.');
-        return;
-      }
-      if (unapplied.length === 1) {
-        sendWebviewMessage({ type: 'applyDiff', id: unapplied[0].id });
-        return;
-      }
-      const pick = await vscode.window.showQuickPick(
-        unapplied.map((d) => ({
-          label: d.filePath,
-          description: d.id,
-        })),
-        { placeHolder: 'Select diff suggestion to apply' }
-      );
-      if (!pick) return;
-      const chosen = unapplied.find((d) => d.id === pick.description);
-      if (chosen) {
-        sendWebviewMessage({ type: 'applyDiff', id: chosen.id });
-      }
-    }),
-
-    vscode.commands.registerCommand('vibe.rollbackLast', async () => {
-      await chatProvider?.rollbackLast();
-    }),
-
-    vscode.commands.registerCommand('vibe.addMemory', async () => {
-      const text = await vscode.window.showInputBox({
-        prompt: 'Add memory text',
-        placeHolder: 'E.g., Completed refactor of data layer; next step: optimize queries.',
-      });
-      if (!text) return;
-      memoryBank?.addMemory(text, {
-        tags: ['manual'],
-        importance: 2,
-        scope: 'workspace',
-      });
-      vscode.window.showInformationMessage('Vibe: Memory added.');
-    }),
-
-    vscode.commands.registerCommand('vibe.recallMemory', async () => {
-      const query = await vscode.window.showInputBox({
-        prompt: 'Query memory bank',
-        placeHolder: 'E.g., refactor plan',
-      });
-      if (!query) return;
-      const segment = memoryBank
-        ? memoryBank.buildSessionContextSummary()
-        : 'Memory disabled.';
-      chatProvider?.pushAssistant(
-        '[Memory Recall]\n' + segment + '\nQuery: ' + query
-      );
-    }),
-
-    vscode.commands.registerCommand('vibe.planOrchestrator', async () => {
-      const prompt = await vscode.window.showInputBox({
-        prompt: 'Enter task to plan with Orchestrator',
-        placeHolder: 'E.g., Debug failing authentication flow',
-      });
-      if (!prompt) return;
-      await orchestrator?.planFromPrompt(
-        prompt,
-        'orchestrator',
-        'Orchestrator',
-        'Coordinates multi-step workflows'
-      );
-      chatProvider?.pushAssistant('Orchestrator plan generated.');
-    }),
-
-    vscode.commands.registerCommand('vibe.executePlan', async () => {
-      await orchestrator?.executeAll();
-      chatProvider?.pushAssistant('Orchestrator execution completed.');
-    }),
-
-    vscode.commands.registerCommand('vibe.hallucinationCheck', async () => {
-      // Simple grounding: verify any file paths inside last assistant message exist.
-      const lastAssistant = getLastAssistantMessage();
-      if (!lastAssistant) {
-        vscode.window.showInformationMessage(
-          'Vibe: No assistant message found for hallucination check.'
-        );
-        return;
-      }
-      const paths = extractPotentialPaths(lastAssistant);
-      const existing: string[] = [];
-      const missing: string[] = [];
-      for (const p of paths.slice(0, 40)) {
-        try {
-          const ws = vscode.workspace.workspaceFolders?.[0];
-          if (!ws) break;
-          const uri = vscode.Uri.joinPath(ws.uri, p);
-          const stat = await vscode.workspace.fs.stat(uri);
-          if (stat.type !== vscode.FileType.Directory) {
-            existing.push(p);
-          } else {
-            missing.push(p);
-          }
-        } catch {
-          missing.push(p);
-        }
-      }
-      chatProvider?.pushAssistant(
-        '[Grounding Report]\nExisting files:\n' +
-          (existing.join('\n') || '(none)') +
-          '\nMissing / suspect:\n' +
-          (missing.join('\n') || '(none)') +
-          '\nTotal checked: ' +
-          paths.length
-      );
-    }),
-
-    // New: force reload chat webview to recover from blank panel issues.
-    vscode.commands.registerCommand('vibe.reloadChat', () => {
-      chatProvider?.pushAssistant('Reloading chat view…');
-      (chatProvider as any)?.forceReload?.();
-    }),
-
-    vscode.commands.registerCommand('vibe.testChat', async () => {
-      chatProvider?.pushAssistant('Vibe: Test chat – sending "Hello".');
-      await chatProvider?.debugSend('Hello from Vibe test.');
-    }),
-
-    vscode.commands.registerCommand('vibe.testOrchestrate', async () => {
-      const prompt =
-        'Debug this function: authenticateUser(token) throwing "Invalid signature" intermittently. Identify root cause and propose fix.';
-      await orchestrator?.planFromPrompt(
-        prompt,
-        'debug',
-        'Debug Orchestrator',
-        'Coordinates debugging workflows'
-      );
-      await orchestrator?.executeAll();
-      chatProvider?.pushAssistant('Vibe: Test orchestrator run completed.');
-    }),
-    vscode.commands.registerCommand('vibe.showApiKeyDebug', async () => {
-      try {
-        const cfg = vscode.workspace.getConfiguration('vibe');
-        const envKey = (process.env.OPENROUTER_API_KEY || '').trim();
-        const configKey = (cfg.get<string>('openRouter.apiKey', '') || '').trim();
-        const resolved = envKey || configKey;
-        if (resolved) {
-          chatProvider?.pushAssistant(
-            '[API Key Debug]\nSource: ' +
-              (envKey ? 'Environment' : 'Settings') +
-              '\nLength: ' +
-              resolved.length +
-              '\nFirst 4 chars: ' +
-              resolved.slice(0, 4) +
-              '\nStatus: OK'
-          );
-          vscode.window.showInformationMessage('Vibe: API key detected (' + (envKey ? 'env' : 'settings') + ').');
-        } else {
-          chatProvider?.pushAssistant(
-            '[API Key Debug]\nNo key resolved.\nSet via Settings: vibe.openRouter.apiKey or export OPENROUTER_API_KEY.'
-          );
-          vscode.window.showWarningMessage('Vibe: No API key found.');
-        }
-      } catch (e: any) {
-        chatProvider?.pushAssistant('[API Key Debug] Error: ' + (e.message || String(e)));
-        vscode.window.showErrorMessage('Vibe: API key debug failed.');
-      }
-    })
-  );
-
-    // Initialize Git Hook
-    initializeGitHook(context, chatProvider).catch(err => logError(`Failed to initialize Git hook: ${err}`));
-
-    log('Vibe extension activated successfully');
-  } catch (error) {
-    logError(`Error during activation: ${error}`);
-    vscode.window.showErrorMessage('Vibe AI failed to activate. See Output panel for details.');
+    VibeView.currentView = provider;
   }
 
-  // Set initial mode context key for keybindings
-  void vscode.commands.executeCommand('setContext', 'vibe.activeMode', 'code');
+  constructor(private readonly context: vscode.ExtensionContext) {
+    const cfg = getExtensionConfig();
+    this.currentModelId = cfg.defaultModel || TOP_FREE_MODELS[0];
+  }
 
-  // Periodic token usage refresh with free tier limit display
-  const interval = setInterval(() => {
-    if (tokenStatusItem && llmService) {
-      const usage = llmService.getSessionTokenUsage();
-      tokenStatusItem.text = `Vibe Tokens: ${usage}`;
-      tokenStatusItem.tooltip = `GLM-4.5-Air usage: ${usage} tokens (free tier limit: 128K context)`;
+  public resolveWebviewView(
+    webviewView: vscode.WebviewView,
+    context: vscode.WebviewViewResolveContext,
+    token: vscode.CancellationToken
+  ) {
+    this.view = webviewView;
+
+    webviewView.webview.options = {
+      enableScripts: true,
+    };
+
+    webviewView.webview.html = this.getHtmlForWebview(webviewView.webview);
+
+    webviewView.onDidDispose(
+      () => this.dispose(),
+      null,
+      this.disposables
+    );
+
+    webviewView.webview.onDidReceiveMessage(
+      (msg) => this.handleMessage(msg),
+      undefined,
+      this.disposables
+    );
+
+    void this.postInitState();
+  }
+
+  public show() {
+    if (this.view) {
+      this.view.show(true);
     }
-  }, 4000);
-  context.subscriptions.push({
-    dispose: () => clearInterval(interval),
-  });
-}
+  }
 
-async function initializeGitHook(context: vscode.ExtensionContext, chatProvider: ChatViewProvider) {
-  log('Attempting to initialize Git integration...');
-  try {
-    const gitExtension = vscode.extensions.getExtension<GitExtension>('vscode.git');
-    if (!gitExtension) {
-      logWarn('Git extension (vscode.git) not found.');
+  public setMode(mode: VibeModeId) {
+    this.currentMode = mode;
+    const meta = MODES.find((m) => m.id === mode);
+    if (this.view) {
+      this.view.webview.postMessage({
+        type: "setMode",
+        mode,
+        modeLabel: meta?.label,
+        modeDescription: meta?.description,
+      });
+    }
+  }
+
+  public switchMode(delta: 1 | -1) {
+    const idx = MODES.findIndex((m) => m.id === this.currentMode);
+    if (idx === -1) {
+      this.setMode("code");
       return;
     }
-    
-    await gitExtension.activate();
-    const gitApi = gitExtension.exports.getAPI(1);
-
-    if (gitApi.repositories.length > 0) {
-      const repo = gitApi.repositories[0];
-      log('Git repository found. Attaching state.onDidChange listener.');
-      
-      context.subscriptions.push(
-        repo.state.onDidChange(() => {
-          log('Git state changed.');
-          chatProvider.pushAssistant('Git repository state changed. Would you like me to review the changes?');
-        })
-      );
-    } else {
-      logWarn('No Git repositories found in workspace.');
+    let next = idx + delta;
+    if (next < 0) {
+      next = MODES.length - 1;
+    } else if (next >= MODES.length) {
+      next = 0;
     }
-  } catch (err) {
-    logError(`Error activating Git API: ${err}`);
+    this.setMode(MODES[next].id);
+  }
+
+  public dispose() {
+    VibeView.currentView = undefined;
+    while (this.disposables.length) {
+      const d = this.disposables.pop();
+      d?.dispose();
+    }
+  }
+
+  private async postInitState() {
+    const cfg = getExtensionConfig();
+    if (this.view) {
+      this.view.webview.postMessage({
+        type: "init",
+        modes: MODES,
+        personas: PERSONAS,
+        currentMode: this.currentMode,
+        currentPersonaId: this.currentPersonaId,
+        currentModelId: this.currentModelId,
+        topModels: TOP_FREE_MODELS,
+        settings: cfg,
+      });
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private async handleMessage(msg: any) {
+    switch (msg.type) {
+      case "ready":
+        await this.postInitState();
+        break;
+      case "setMode":
+        if (MODES.some((m) => m.id === msg.mode)) {
+          this.setMode(msg.mode);
+        }
+        break;
+      case "setPersona":
+        this.currentPersonaId = msg.personaId;
+        break;
+      case "setModel":
+        if (typeof msg.modelId === "string") {
+          this.currentModelId = msg.modelId;
+        }
+        break;
+      case "sendMessage":
+        await this.handleSendMessage(msg);
+        break;
+      case "requestContext":
+        await this.handleRequestContext();
+        break;
+      case "openSettings":
+        void vscode.commands.executeCommand(
+          "workbench.action.openSettings",
+          "@ext:vibe-vscode"
+        );
+        break;
+      case "openExternal":
+        if (typeof msg.url === "string") {
+          void vscode.env.openExternal(vscode.Uri.parse(msg.url));
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  private async handleSendMessage(msg: {
+    text: string;
+    isAgent: boolean;
+  }) {
+    const text = (msg.text || "").trim();
+    if (!text) {
+      return;
+    }
+
+    const cfg = getExtensionConfig();
+    if (!cfg.apiKey) {
+      void vscode.window.showWarningMessage(
+        "Vibe: Please set your OpenRouter API key in settings (vibe.openrouterApiKey)."
+      );
+      return;
+    }
+
+    const persona =
+      PERSONAS.find((p) => p.id === this.currentPersonaId) ?? PERSONAS[0];
+
+    const taskType = determineTaskType(this.currentMode, text);
+
+    const systemPrompt = this.buildSystemPrompt(persona, msg.isAgent, cfg, taskType);
+
+    const messages: ChatMessage[] = [];
+    messages.push({ role: "system", content: systemPrompt });
+    this.messages.forEach((m) => messages.push(m));
+    messages.push({ role: "user", content: text });
+
+    this.messages.push({ role: "user", content: text });
+
+    const progress = vscode.window.createStatusBarItem(
+      vscode.StatusBarAlignment.Left,
+      1000
+    );
+    progress.text = "Vibe: Thinking...";
+    progress.show();
+
+    try {
+      const resp = await callOpenRouter({
+        apiKey: cfg.apiKey,
+        model: this.currentModelId,
+        messages,
+        taskType,
+      });
+      this.messages.push({ role: "assistant", content: resp.content });
+      if (this.view) {
+        this.view.webview.postMessage({
+          type: "assistantMessage",
+          content: resp.content,
+        });
+      }
+    } catch (err: any) {
+      const msgText =
+        err?.message || "Unexpected error calling OpenRouter API.";
+      void vscode.window.showErrorMessage(`Vibe: ${msgText}`);
+    } finally {
+      progress.dispose();
+    }
+  }
+
+  private async handleRequestContext() {
+    const editors = vscode.window.visibleTextEditors;
+    const snippets = editors.map((ed: vscode.TextEditor) => {
+      const text = ed.document.getText();
+      return {
+        uri: ed.document.uri.toString(),
+        languageId: ed.document.languageId,
+        content: text.slice(0, 4000),
+      };
+    });
+
+    if (this.view) {
+      this.view.webview.postMessage({
+        type: "context",
+        snippets,
+      });
+    }
+  }
+
+  private buildSystemPrompt(
+    persona: Persona,
+    isAgent: boolean,
+    cfg: OpenRouterConfig,
+    taskType: string
+  ): string {
+    const base =
+      "You are Vibe, a defensive, privacy-first AI coding assistant running inside VS Code. " +
+      "You have access to project context and should propose safe, incremental changes. " +
+      "Never execute destructive operations without explicit user confirmation.";
+
+    const personaLine = `Persona: ${persona.label} - ${persona.description}`;
+    const mode = MODES.find((m) => m.id === this.currentMode);
+    const modeLine = mode
+      ? `Current mode: ${mode.label} - ${mode.description}`
+      : "";
+
+    const agentLine = isAgent
+      ? "You are in Agent mode. Plan your work as small, reversible steps. Propose checkpoints and a todo list for the user."
+      : "You are in Chat mode. Answer directly and include concrete code examples when helpful.";
+
+    const taskTypeLine = `Task type: ${taskType}.`;
+
+    const autoApproveLine = cfg.autoApproveUnsafeOps
+      ? "Auto-approve mode is ON. When the user asks you to apply file edits, run commands, or open URLs, you may treat that as explicit approval, but still describe what you plan to do."
+      : "Auto-approve mode is OFF. Never assume destructive operations are approved; prefer plans and diff-style suggestions.";
+
+    const contextLimitLine = `You can reference at most ${cfg.maxContextFiles} project files when reasoning about context. Prefer focusing on files the user or context has provided.`;
+
+    return [
+      base,
+      personaLine,
+      modeLine,
+      agentLine,
+      taskTypeLine,
+      autoApproveLine,
+      contextLimitLine,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+  }
+
+  private getHtmlForWebview(webview: vscode.Webview): string {
+    const nonce = getNonce();
+    const csp = webview.cspSource;
+
+    const modeButtons = MODES.map(
+      (m) =>
+        `<button class="mode-btn" data-mode="${m.id}">
+           <span class="icon">${m.shortLabel}</span>
+           <span class="label">${m.label}</span>
+         </button>`
+    ).join("");
+
+    const personaOptions = PERSONAS.map(
+      (p) =>
+        `<option value="${p.id}">${p.label}</option>`
+    ).join("");
+
+    const modelOptions = TOP_FREE_MODELS.map(
+      (id) => `<option value="${id}">${id}</option>`
+    ).join("");
+
+    return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${csp} https: data:; style-src 'unsafe-inline' ${csp}; script-src 'nonce-${nonce}';" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vibe</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: var(--vscode-font-family);
+        background-color: var(--vscode-editor-background);
+        color: var(--vscode-editor-foreground);
+      }
+      .root {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 8px;
+        border-bottom: 1px solid var(--vscode-panel-border);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 600;
+      }
+      .brand span.icon {
+        font-size: 16px;
+      }
+      .modes {
+        display: flex;
+        gap: 4px;
+        overflow-x: auto;
+      }
+      .mode-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 6px;
+        border-radius: 4px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+        font-size: 11px;
+      }
+      .mode-btn.active {
+        border-color: var(--vscode-button-border, var(--vscode-focusBorder));
+        background: var(--vscode-button-secondaryBackground);
+      }
+      .toolbar-right {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      select, button.small {
+        font-size: 11px;
+      }
+      .main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .tabs {
+        display: flex;
+        gap: 4px;
+        padding: 4px 8px;
+        border-bottom: 1px solid var(--vscode-panel-border);
+      }
+      .tab {
+        padding: 3px 8px;
+        cursor: pointer;
+        border-radius: 4px;
+      }
+      .tab.active {
+        background: var(--vscode-tab-activeBackground);
+      }
+      .content {
+        flex: 1;
+        display: flex;
+        min-height: 0;
+      }
+      .chat-column {
+        flex: 2;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid var(--vscode-panel-border);
+      }
+      .sidebar {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        font-size: 11px;
+      }
+      .messages {
+        flex: 1;
+        padding: 8px;
+        overflow-y: auto;
+        font-size: 12px;
+      }
+      .message {
+        margin-bottom: 8px;
+      }
+      .message.user {
+        color: var(--vscode-debugTokenExpression-string);
+      }
+      .message.assistant {
+        color: var(--vscode-debugTokenExpression-number);
+      }
+      .input-row {
+        border-top: 1px solid var(--vscode-panel-border);
+        padding: 4px 8px;
+      }
+      textarea {
+        width: 100%;
+        resize: none;
+        min-height: 48px;
+        font-family: inherit;
+        font-size: 12px;
+      }
+      .input-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 4px;
+        font-size: 11px;
+      }
+      .sidebar-section {
+        padding: 6px 8px;
+        border-bottom: 1px solid var(--vscode-panel-border);
+      }
+      .sidebar-section h3 {
+        margin: 0 0 4px;
+        font-size: 11px;
+        text-transform: uppercase;
+      }
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      .pill {
+        padding: 2px 6px;
+        border-radius: 999px;
+        border: 1px solid var(--vscode-panel-border);
+        cursor: pointer;
+      }
+      .pill.active {
+        background: var(--vscode-button-secondaryBackground);
+      }
+      .muted {
+        opacity: 0.8;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="root">
+      <header>
+        <div class="brand">
+          <span class="icon">✨</span>
+          <span>Vibe</span>
+        </div>
+        <div class="modes" id="modes">
+          ${modeButtons}
+        </div>
+        <div class="toolbar-right">
+          <select id="personaSelect">
+            ${personaOptions}
+          </select>
+          <select id="modelSelect">
+            ${modelOptions}
+          </select>
+          <button class="small" id="contextBtn">Context</button>
+          <button class="small" id="settingsBtn">Settings</button>
+        </div>
+      </header>
+      <div class="main">
+        <div class="tabs">
+          <div class="tab active" data-tab="chat">Chat</div>
+          <div class="tab" data-tab="agent">Agent</div>
+        </div>
+        <div class="content">
+          <div class="chat-column">
+            <div class="messages" id="messages"></div>
+            <div class="input-row">
+              <textarea id="input" placeholder="Ask Vibe…"></textarea>
+              <div class="input-actions">
+                <span class="muted">Enter to send, Shift+Enter for newline</span>
+                <button class="small" id="sendBtn">Send</button>
+              </div>
+            </div>
+          </div>
+          <div class="sidebar">
+            <div class="sidebar-section">
+              <h3>Mode</h3>
+              <div id="modeSummary" class="muted"></div>
+            </div>
+            <div class="sidebar-section">
+              <h3>Personas</h3>
+              <div class="pill-row" id="personaPills"></div>
+            </div>
+            <div class="sidebar-section">
+              <h3>Checkpoints</h3>
+              <div id="checkpoints" class="muted">Use Agent mode to create checkpoints.</div>
+            </div>
+            <div class="sidebar-section">
+              <h3>Context</h3>
+              <div id="contextArea" class="muted">Click Context to pull open editors as context.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script nonce="${nonce}">
+      const vscode = acquireVsCodeApi();
+      let currentMode = "code";
+      let currentTab = "chat";
+      let isAgent = false;
+
+      function selectMode(id) {
+        currentMode = id;
+        document.querySelectorAll(".mode-btn").forEach(btn => {
+          btn.classList.toggle("active", btn.dataset.mode === id);
+        });
+        vscode.postMessage({ type: "setMode", mode: id });
+      }
+
+      function appendMessage(role, content) {
+        const container = document.getElementById("messages");
+        const div = document.createElement("div");
+        div.className = "message " + role;
+        div.textContent = (role === "user" ? "You: " : "Vibe: ") + content;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+      }
+
+      function setModeSummary(text) {
+        const el = document.getElementById("modeSummary");
+        if (el) el.textContent = text;
+      }
+
+      function setPersonas(personas) {
+        const pills = document.getElementById("personaPills");
+        pills.innerHTML = "";
+        personas.forEach(p => {
+          const pill = document.createElement("div");
+          pill.className = "pill";
+          pill.textContent = p.label;
+          pill.dataset.id = p.id;
+          pill.addEventListener("click", () => {
+            document.querySelectorAll(".pill").forEach(x => x.classList.remove("active"));
+            pill.classList.add("active");
+            vscode.postMessage({ type: "setPersona", personaId: p.id });
+            const select = document.getElementById("personaSelect");
+            if (select) select.value = p.id;
+          });
+          pills.appendChild(pill);
+        });
+      }
+
+      window.addEventListener("message", event => {
+        const msg = event.data;
+        switch (msg.type) {
+          case "init":
+            if (msg.modes) {
+              const mode = msg.modes.find(m => m.id === msg.currentMode) || msg.modes[0];
+              if (mode) {
+                selectMode(mode.id);
+                setModeSummary(mode.label + " — " + mode.description);
+              }
+            }
+            if (msg.personas) {
+              setPersonas(msg.personas);
+              const select = document.getElementById("personaSelect");
+              if (select && msg.currentPersonaId) {
+                select.value = msg.currentPersonaId;
+              }
+            }
+            if (msg.currentModelId) {
+              const sel = document.getElementById("modelSelect");
+
+            if (sel) sel.value = msg.currentModelId;
+            }
+            break;
+          case "setMode":
+            selectMode(msg.mode);
+            if (msg.modeLabel && msg.modeDescription) {
+              setModeSummary(msg.modeLabel + " — " + msg.modeDescription);
+            }
+            break;
+          case "assistantMessage":
+           
+
+            appendMessage("assistant", msg.content);
+            break;
+          case "context":
+            const area = document.getElementById("contextArea");
+            if (area) {
+              const parts = msg.snippets.map(s => s.uri + " [" + s.languageId + "]");
+              area.textContent = parts.join("\\n");
+            }
+            break;
+        }
+      });
+
+      document.getElementById("modes").addEventListener("click", (e) => {
+        const target = e.target.closest(".mode-btn");
+        if (target) {
+          const id = target.dataset.mode;
+          selectMode(id);
+        }
+      });
+
+      document.querySelectorAll(".tab").forEach(tab => {
+        tab.addEventListener("click", () => {
+          document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+          tab.classList.add("active");
+          currentTab = tab.dataset.tab;
+          isAgent = currentTab === "agent";
+        });
+      });
+
+      document.getElementById("sendBtn").addEventListener("click", () => {
+        const input = document.getElementById("input");
+        const text = input.value.trim();
+        if (!text) return;
+        appendMessage("user", text);
+        vscode.postMessage({ type: "sendMessage", text, isAgent });
+        input.value = "";
+      });
+
+      document.getElementById("input").addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          document.getElementById("sendBtn").click();
+        }
+      });
+
+      document.getElementById("contextBtn").addEventListener("click", () => {
+        vscode.postMessage({ type: "requestContext" });
+      });
+
+      document.getElementById("settingsBtn").addEventListener("click", () => {
+        vscode.postMessage({ type: "openSettings" });
+      });
+
+      document.getElementById("personaSelect").addEventListener("change", (e) => {
+        const id = e.target.value;
+        vscode.postMessage({ type: "setPersona", personaId: id });
+      });
+
+      document.getElementById("modelSelect").addEventListener("change", (e) => {
+        const id = e.target.value;
+       
+        vscode.postMessage({ type: "setModel", modelId: id });
+      });
+
+      vscode.postMessage({ type: "ready" });
+    </script>
+  </body>
+</html>`;
   }
 }
 
-// Centralized logging functions
-export function log(message: string) {
-  outputChannel?.appendLine(`[INFO] ${new Date().toISOString()}: ${message}`);
-  console.log(message);
+function getExtensionConfig(): OpenRouterConfig {
+  const cfg = vscode.workspace.getConfiguration("vibe");
+  return {
+    apiKey: cfg.get<string>("openrouterApiKey") || "",
+    defaultModel: cfg.get<string>("defaultModel") || "z-ai/glm-4.5-air:free",
+    autoApproveUnsafeOps: cfg.get<boolean>("autoApproveUnsafeOps") || false,
+    maxContextFiles: cfg.get<number>("maxContextFiles") || 20,
+  };
 }
 
-export function logWarn(message: string) {
-  outputChannel?.appendLine(`[WARN] ${new Date().toISOString()}: ${message}`);
-  console.warn(message);
-}
-
-export function logError(message: string, error?: any) {
-  const errorMessage = error ? `${message}: ${error instanceof Error ? error.message : String(error)}` : message;
-  outputChannel?.appendLine(`[ERROR] ${new Date().toISOString()}: ${errorMessage}`);
-  if (error instanceof Error) {
-    outputChannel?.appendLine(error.stack || '');
+function determineTaskType(mode: VibeModeId, text: string): string {
+  const lower = text.toLowerCase();
+  if (mode === "architect") return "architect";
+  if (mode === "project-research") return "project-research";
+  if (mode === "debug" || lower.includes("error") || lower.includes("stack")) {
+    return "debug";
   }
-  console.error(message, error);
+  if (mode === "code") {
+    if (
+      lower.includes("refactor") ||
+      lower.includes("clean up") ||
+      lower.includes("optimize")
+    ) {
+      return "refactor";
+    }
+    return "code-generation";
+  }
+  if (mode === "orchestrator") return "orchestrator";
+  return "chat";
+}
+
+async function callOpenRouter(args: {
+  apiKey: string;
+  model: string;
+  messages: ChatMessage[];
+  taskType: string;
+}): Promise<OpenRouterResponse> {
+  const body = {
+    model: args.model || "z-ai/glm-4.5-air:free",
+    messages: args.messages,
+    temperature: 0.2,
+  };
+
+  const res = (await fetch(
+    "https://openrouter.ai/api/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${args.apiKey}`,
+        "HTTP-Referer": "https://github.com/mk-knight23/vibe-cli",
+        "X-Title": "Vibe VS Code",
+      },
+      body: JSON.stringify(body),
+    }
+  )) as {
+    ok: boolean;
+    status: number;
+    text(): Promise<string>;
+    json(): Promise<unknown>;
+  };
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`HTTP ${res.status}: ${text}`);
+  }
+  const data = (await res.json()) as any;
+  const content =
+    data?.choices?.[0]?.message?.content ??
+    "No content returned from OpenRouter.";
+  return { content };
+}
+
+function getNonce(): string {
+  let text = "";
+  const possible =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  for (let i = 0; i < 16; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+  return text;
+}
+
+export function activate(context: vscode.ExtensionContext) {
+  // Register the webview view provider first
+  const provider = new VibeView(context);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider("vibe.vibePanel", provider, {
+      webviewOptions: {
+        retainContextWhenHidden: true
+      }
+    })
+  );
+  VibeView.currentView = provider;
+
+  // Register commands
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vibe.openChat", () => {
+      VibeView.currentView?.show();
+      VibeView.currentView?.setMode("code");
+    }),
+    vscode.commands.registerCommand("vibe.openAgent", () => {
+      VibeView.currentView?.show();
+      VibeView.currentView?.setMode("architect");
+    }),
+    vscode.commands.registerCommand("vibe.openSettings", () => {
+      void vscode.commands.executeCommand(
+        "workbench.action.openSettings",
+        "vibe"
+      );
+    }),
+    vscode.commands.registerCommand("vibe.switchNextMode", () => {
+      VibeView.currentView?.switchMode(1);
+    }),
+    vscode.commands.registerCommand("vibe.switchPrevMode", () => {
+      VibeView.currentView?.switchMode(-1);
+    })
+  );
 }
 
 export function deactivate() {
-  log('Vibe AI extension deactivating...');
-  chatProvider?.dispose();
-  quickChatProvider?.dispose();
-  orchestrator?.dispose();
-  tokenStatusItem?.dispose();
-  outputChannel?.dispose();
+  // no-op for now
 }
-
-/**
- * Cycle mode in MODE_SEQUENCE order by delta (+1 / -1).
- */
-function cycleMode(delta: number) {
-  const cfg = vscode.workspace.getConfiguration('vibe');
-  // Mode is managed inside webview; we only signal change.
-  const active = getContextMode();
-  const idx = MODE_SEQUENCE.indexOf(active);
-  const nextIdx =
-    idx === -1
-      ? 0
-      : (idx + delta + MODE_SEQUENCE.length) % MODE_SEQUENCE.length;
-  const nextMode = MODE_SEQUENCE[nextIdx];
-  sendWebviewMessage({ type: 'setMode', mode: nextMode });
-  void vscode.commands.executeCommand('setContext', 'vibe.activeMode', nextMode);
-  vscode.window.setStatusBarMessage(`Vibe Mode: ${nextMode}`, 2500);
-  void cfg.update('lastMode', nextMode, vscode.ConfigurationTarget.Workspace);
-}
-
-/**
- * Retrieve last active mode from context (fallback 'code').
- */
-function getContextMode(): string {
-  return vscode.workspace
-    .getConfiguration('vibe')
-    .get<string>('lastMode', 'code');
-}
-
-/**
- * Send message to chat webview.
- */
-function sendWebviewMessage(msg: unknown) {
-  // Post message to the chat provider if it exists
-  if (chatProvider) {
-    (chatProvider as any).postMessage?.(msg);
-  }
-}
-
-/**
- * Extract potential relative file paths from assistant message heuristically.
- */
-function extractPotentialPaths(text: string): string[] {
-  const regex = /(?:^|\s)([A-Za-z0-9._/-]+\.(?:ts|js|tsx|json|md|py|go|java|c|cpp|cs|rs|sh|yml|yaml))\b/g;
-  const out: string[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = regex.exec(text))) {
-    out.push(m[1]);
-  }
-  return Array.from(new Set(out));
-}
-
-/**
- * Get last assistant message from chat provider.
- */
-function getLastAssistantMessage(): string | undefined {
-  const list = chatProvider?.listDiffSuggestions(); // not helpful; need chat history
-  // Using internal property (not exported) via reflective access — stable while extension code controls structure.
-  const chat = (chatProvider as any)?.chat as
-    | { role: string; content: string }[]
-    | undefined;
-  if (!chat) return;
-  for (let i = chat.length - 1; i >= 0; i--) {
-    if (chat[i].role === 'assistant') {
-      return chat[i].content;
-    }
-  }
-  return;
-}
-
-/**
- * Optional utility to request a one-off planning response outside orchestrator (not used yet).
- */
-async function quickPlan(prompt: string): Promise<string> {
-  if (!llmService) return 'LLM not ready.';
-  const cfg = vscode.workspace.getConfiguration('vibe');
-  let apiKey: string;
-  try {
-    apiKey = getOpenRouterApiKey();
-  } catch {
-    return 'OpenRouter API key missing. Set vibe.openRouter.apiKey in settings or export OPENROUTER_API_KEY.';
-  }
-  const model = cfg.get<string>('model', FREE_MODELS[0])!;
-  const systemPrompt = buildSystemPrompt({
-    baseMode: 'architect',
-    personaLabel: 'Architect',
-    personaDescription: 'High-level planning and trade-offs.',
-    autoApprove: false,
-    maxContextFiles: cfg.get<number>('maxContextFiles', 30),
-  });
-  const messages: ChatMessage[] = [
-    { role: 'system', content: systemPrompt },
-    { role: 'user', content: 'Plan briefly:\n' + prompt },
-  ];
-  const { emitter, done } = llmService.streamChatCompletion({
-    apiKey,
-    model,
-    messages,
-    temperature: 0.2,
-  });
-  let acc = '';
-  emitter.on((c) => {
-    acc += c.delta;
-  });
-  try {
-    await done;
-  } catch {
-    // ignore
-  }
-  return acc;
-}
+             

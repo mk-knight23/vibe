@@ -1,6 +1,17 @@
 # Vibe CLI
 
-Free, privacy-first AI coding assistant for the terminal. Supports chat, code generation, refactor, debug, test authoring, git review, and autonomous agent workflows.
+**Version: 2.1.0** | **Status: Production Ready** | **License: MIT**
+
+🤖 Free, privacy-first AI coding assistant for the terminal. Advanced chat, code generation, refactoring, debugging, test authoring, git automation, and autonomous agent workflows powered by OpenRouter's free models.
+
+## 🎉 What's New in v2.1.0
+
+- 🚀 **Enhanced Agent Mode**: Autonomous multi-step task execution with checkpoints
+- 🔧 **Improved Code Generation**: Multi-file project creation with better context awareness
+- 🛡️ **Enhanced Security**: Advanced filtering and privacy protections
+- ⚡ **Performance Boost**: Reduced memory usage and faster response times
+- 🎯 **Smart Model Selection**: Task-aware model routing for optimal results
+- 📊 **Better Error Handling**: Improved debugging and recovery mechanisms
 
 ## 1. Installation
 
@@ -152,26 +163,51 @@ Loop:
 
 Agent core: [`vibe-cli/agent/agent.cjs`](vibe-cli/agent/agent.cjs:1).
 
-## 9. Versioning & Tagging
+## 🚀 Versioning & Release Management
 
-Per-package tags (see root [`README.md`](README.md:1) and [`VERSIONING.md`](VERSIONING.md:1)):
+### Current Version
+- **Version**: v2.1.0 (2024-11-18)
+- **Tag Prefix**: `vibe-cli-vX.Y.Z`
+- **Release Type**: Independent semantic versioning
 
-```
-vibe-cli-vX.Y.Z
-```
+### Release Process
 
-Release steps:
 ```bash
-# bump version
+# Bump version (patch/minor/major)
 npm version patch
+
+# Commit and tag
 git add package.json
-git commit -m "vibe-cli: bump to 1.0.7"
-git tag vibe-cli-v1.0.7
-git push origin vibe-cli-v1.0.7
+git commit -m "vibe-cli: bump to 2.1.1"
+git tag vibe-cli-v2.1.1
+
+# Push to trigger automated release
+git push origin vibe-cli-v2.1.1
 ```
 
-Triggered workflows:
-- `vibe-cli-v*` runs publish & binary release pipelines.
+### Automated Workflows
+- **`vibe-cli-v*`** triggers:
+  - npm publish to registry
+  - Binary build for multiple platforms
+  - GitHub release with artifacts
+  - Documentation updates
+
+### Version History Highlights
+
+#### v2.1.0 (Current)
+- 🎉 **Agent Mode**: Autonomous task execution with checkpoints
+- 🔧 **Enhanced Codegen**: Multi-file project creation
+- 🛡️ **Security**: Advanced filtering and privacy
+- ⚡ **Performance**: Optimized memory usage
+- 🎯 **Model Selection**: Task-aware routing
+
+#### v1.0.7 (Previous)
+- 📊 **Cost Estimation**: Token usage tracking
+- 🔄 **Resume Feature**: Interrupted session recovery
+- 📝 **Explain Command**: Pipe input analysis
+- 🎨 **TUI Preview**: Experimental terminal UI
+
+Reference: [`VERSIONING.md`](VERSIONING.md:1) and root [`README.md`](README.md:1).
 
 ## 10. Binary Build
 

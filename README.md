@@ -1,244 +1,421 @@
-# Vibe Repository — Multi-Package Layout (Vibe CLI / Vibe Web / Vibe Code)
+# Vibe Repository — AI-Powered Development Ecosystem
 
-This repository now consists of three independent packages:
+**Version: 2.0.0** | **Status: Production Ready** | **License: MIT**
 
-1. Vibe CLI (Primary): `./vibe-cli` — interactive terminal assistant (chat, codegen, refactor, debug, test, git, agent).
-2. Vibe Web (Marketing & Docs Surface): `./vibe-web` — Next.js site for onboarding, feature overview, future MDX docs.
-3. Vibe Code (VS Code Extension): `./vibe-code` — in-editor chat, agent orchestration, diff workflow.
+A comprehensive AI-powered development ecosystem consisting of three integrated packages designed to enhance your coding workflow across terminal, web, and IDE environments.
 
-Each package ships with its own `package.json` and release lifecycle. The root repo acts only as a meta container (no workspaces).
+## 🚀 Ecosystem Components
 
-### Quick Links
-- Versioning Strategy: See [`VERSIONING.md`](VERSIONING.md:1)
-- Full Publish Guide (manual + CI): See [`PUBLISHING.md`](PUBLISHING.md:1)
-- CLI Entry: [`vibe-cli/bin/vibe.cjs`](vibe-cli/bin/vibe.cjs:1)
-- Web Root Page: [`vibe-web/src/app/page.tsx`](vibe-web/src/app/page.tsx:1)
-- Extension Activation: [`vibe-code/src/extension.ts`](vibe-code/src/extension.ts:1)
+1. **Vibe CLI** (v2.1.0) — Advanced terminal assistant with chat, code generation, refactoring, debugging, testing, git automation, and autonomous agent capabilities
+2. **Vibe Web** (v1.2.0) — Modern marketing and documentation platform built with Next.js 16, featuring interactive guides and comprehensive onboarding
+3. **Vibe Code** (v1.0.0) — Feature-rich VS Code extension providing in-editor AI assistance with multiple modes and personas
 
----
+Each package maintains independent versioning and release cycles while sharing a unified design philosophy and OpenRouter integration for free AI model access.
 
-## Architecture Overview
-```
-                +-------------------+             +---------------------------+
-                |   Vibe CLI        |  OpenRouter |  OpenRouter API (Free)     |
-                |  (vibe-cli)       |<----------->|  Models (Free tier only)   |
-                |  Commands: chat,  |             +---------------------------+
-                |  generate,        |
-                |  refactor, debug, |             +---------------------------+
-                |  test, git, agent |<--(planned)-> External Dev Tools (Future)
-                +---------+---------+
-                          |
-                          | File diffs / ops (local FS)
-                          v
-                   +--------------+
-                   | User Project |
-                   | Source Files |
-                   +--------------+
+## 🎯 Key Features
 
-                   +-------------------------+
-                   |        Vibe Web         |
-                   |    (vibe-web, Next.js)  |
-                   |  Marketing + Docs UI    |
-                   +-----------+-------------+
-                               |
-                               | Links / Install Guides
-                               v
-                 +-------------------------------+
-                 |        Vibe Code Extension    |
-                 |       (vibe-code, VSIX)       |
-                 |  In-Editor Chat / Orchestrator|
-                 |  Diff Suggestions / Memory    |
-                 +---------------+---------------+
-                                 |
-                                 | Applies vetted diffs via VS Code APIs
-                                 v
-                           +-----------+
-                           | Workspace |
-                           +-----------+
-```
+### 🤖 AI-Powered Assistance
+- **Free Model Access**: Integration with OpenRouter's free tier models
+- **Task-Specific Models**: Intelligent model selection based on task type
+- **Privacy-First**: No data retention, local-first approach
+- **Multi-Modal Support**: Text, code, and context-aware interactions
 
-Key data/control flows:
-- CLI ↔ OpenRouter: structured task prompts + model rotation (TASK_MODEL_MAPPING).
-- Extension ↔ OpenRouter: streaming completions (see [`vibe-code/src/llmService.ts`](vibe-code/src/llmService.ts:1)).
-- Extension ↔ Workspace: diff preview, backup & rollback.
-- Web: static docs referencing latest package versions (no runtime model calls yet).
+### 🛠️ Comprehensive Toolset
+- **Code Generation**: Create entire applications from natural language descriptions
+- **Intelligent Refactoring**: Automated code improvements with safety checks
+- **Debugging Assistant**: Error analysis and resolution suggestions
+- **Test Generation**: Automated test suite creation
+- **Git Automation**: Smart commit messages and code reviews
+- **Agent Mode**: Autonomous multi-step task execution
 
-Legacy folder layout (single root) has been superseded by three isolated package subdirectories: `vibe-cli/`, `vibe-web/`, `vibe-code/`.
+### 🌐 Multi-Platform Support
+- **Terminal Native**: Full-featured CLI for power users
+- **Web Interface**: Modern documentation and onboarding platform
+- **IDE Integration**: Seamless VS Code extension with rich UI
 
+## 📦 Quick Installation
 
-## 1. Top-Level Directory Structure
-
-```
-.
-├─ package.json            # Meta repo manifest (no dependencies)
-├─ LICENSE
-├─ README.md               # This file (multi-package overview)
-├─ vibe-cli/               # Vibe CLI package
-│  ├─ package.json
-│  ├─ cli.cjs              # Interactive chat REPL entry
-│  ├─ bin/
-│  │  └─ vibe.cjs          # Command router (vibe <command>)
-│  ├─ install.sh           # Optional installer bootstrap
-│  ├─ tools.cjs            # Web search & docs helpers
-│  ├─ tsconfig.cli.json
-│  ├─ core/
-│  │  ├─ apikey.ts
-│  │  ├─ apikey.cjs
-│  │  ├─ openrouter.ts
-│  │  ├─ openrouter.cjs
-│  │  ├─ index.cjs
-│  ├─ agent/
-│  ├─ code/
-│  ├─ edit/
-│  ├─ git/
-│  ├─ refactor/
-│  ├─ debug/
-│  ├─ test/
-├─ vibe-web/               # Next.js marketing/docs site
-│  ├─ package.json
-│  ├─ next.config.mjs
-│  ├─ tailwind.config.cjs
-│  ├─ postcss.config.cjs
-│  ├─ next-env.d.ts
-│  ├─ src/
-│     ├─ app/
-│     ├─ components/
-│     ├─ hooks/
-│     ├─ lib/              # Shared utilities (utils.ts, placeholder-images.*)
-├─ vibe-code/              # Vibe Code (VS Code extension) package
-│  ├─ package.json
-│  ├─ tsconfig.json
-│  ├─ src/
-│  ├─ media/
-│  ├─ README.md
-```
-
----
-
-## 2. Package Roles
-
-| Package | Purpose | Publish Target | Primary Entry |
-|---------|---------|----------------|---------------|
-| Vibe CLI (`vibe-cli`) | Developer terminal assistant | npm (`vibe-cli`) | [`vibe-cli/bin/vibe.cjs`](vibe-cli/bin/vibe.cjs:1) |
-| Vibe Web (`vibe-web`) | Documentation & marketing | Vercel / static host | [`vibe-web/src/app/page.tsx`](vibe-web/src/app/page.tsx:1) |
-| Vibe Code (`vibe-code`) | IDE integration | VS Code Marketplace | [`vibe-code/src/extension.ts`](vibe-code/src/extension.ts:1) |
-
----
-
-## 3. Installation & Usage
-
-### 3.1 CLI (Primary)
-
-Global install (npm):
+### Vibe CLI (Terminal)
 ```bash
 npm install -g vibe-cli
-vibe help
+vibe chat "Hello, Vibe!"
 ```
 
-Direct chat:
+### Vibe Code (VS Code)
 ```bash
-vibe chat "Hello"
+# Install from VS Code Marketplace
+# Search for "Vibe VS Code" by mk-knight23
+# Or install from VSIX:
+cd vibe-code && npm run package && code --install-extension vibe-vscode-*.vsix
+```
+
+### Vibe Web (Documentation)
+```bash
+cd vibe-web
+npm install && npm run dev
+# Visit http://localhost:3000
+```
+
+## 🔗 Quick Links
+- **Versioning Strategy**: [`VERSIONING.md`](VERSIONING.md:1)
+- **Publishing Guide**: [`PUBLISHING.md`](PUBLISHING.md:1)
+- **CLI Documentation**: [`vibe-cli/README.md`](vibe-cli/README.md:1)
+- **Web Documentation**: [`vibe-web/README.md`](vibe-web/README.md:1)
+- **Extension Guide**: [`vibe-code/readme.md`](vibe-code/readme.md:1)
+
+---
+
+## 🏗️ Architecture Overview
+
+```mermaid
+graph TB
+    subgraph "AI Layer"
+        OR[OpenRouter API<br/>Free Models]
+    end
+    
+    subgraph "Vibe CLI v2.1.0"
+        CLI[Core CLI Engine]
+        AGENT[Agent System]
+        TOOLS[Tool Suite]
+    end
+    
+    subgraph "Vibe Web v1.2.0"
+        WEB[Next.js Platform]
+        DOCS[Documentation]
+        UI[Interactive UI]
+    end
+    
+    subgraph "Vibe Code v1.0.0"
+        EXT[VS Code Extension]
+        PANEL[Chat Panel]
+        CONTEXT[Context Engine]
+    end
+    
+    subgraph "User Environment"
+        FS[File System]
+        EDITOR[Code Editor]
+        WORKSPACE[Workspace]
+    end
+    
+    CLI --> OR
+    AGENT --> OR
+    EXT --> OR
+    PANEL --> OR
+    
+    CLI --> FS
+    TOOLS --> FS
+    EXT --> EDITOR
+    CONTEXT --> WORKSPACE
+    
+    WEB --> DOCS
+    WEB --> UI
+    
+    OR --> CLI
+    OR --> AGENT
+    OR --> EXT
+    OR --> PANEL
+```
+
+### 🔄 Data Flow Architecture
+
+1. **AI Integration Layer**: Centralized OpenRouter API access with intelligent model selection
+2. **CLI Processing**: Terminal-based interactions with file system operations
+3. **Web Platform**: Static documentation and interactive guides
+4. **Extension Integration**: In-editor assistance with workspace context
+5. **Security Layer**: Privacy-first design with local data processing
+
+### 🎯 Design Principles
+
+- **Modularity**: Independent packages with unified API contracts
+- **Privacy-First**: Local processing with optional cloud AI features
+- **Extensibility**: Plugin architecture for custom tools and integrations
+- **Performance**: Optimized for minimal resource usage and fast responses
+
+
+## 📁 Repository Structure
+
+```
+vibe-ecosystem/
+├── 📄 package.json              # Meta repository manifest
+├── 📄 LICENSE                   # MIT License
+├── 📄 README.md                 # This file - ecosystem overview
+├── 📄 VERSIONING.md             # Version management strategy
+├── 📄 PUBLISHING.md             # Publishing guidelines
+│
+├── 📂 vibe-cli/                 # Terminal Assistant (v2.1.0)
+│   ├── 📄 package.json
+│   ├── 📄 cli.cjs               # Interactive REPL engine
+│   ├── 📄 tools.cjs              # Utility functions
+│   ├── 📂 bin/
+│   │   └── 📄 vibe.cjs          # CLI entry point
+│   ├── 📂 core/                  # Core functionality
+│   │   ├── 📄 apikey.ts/.cjs     # API key management
+│   │   ├── 📄 openrouter.ts/.cjs # AI model integration
+│   │   └── 📄 index.cjs          # Core exports
+│   ├── 📂 agent/                 # Autonomous agent system
+│   ├── 📂 code/                  # Code generation tools
+│   ├── 📂 edit/                  # Multi-file editing
+│   ├── 📂 git/                   # Git integration
+│   ├── 📂 refactor/              # Code refactoring
+│   ├── 📂 debug/                 # Debugging utilities
+│   └── 📂 test/                  # Test generation
+│
+├── 📂 vibe-web/                 # Web Platform (v1.2.0)
+│   ├── 📄 package.json
+│   ├── 📄 next.config.mjs        # Next.js configuration
+│   ├── 📄 tailwind.config.cjs    # Styling configuration
+│   ├── 📂 src/
+│   │   ├── 📂 app/               # App Router pages
+│   │   │   ├── 📄 page.tsx       # Landing page
+│   │   │   ├── 📂 commands/      # CLI documentation
+│   │   │   ├── 📂 installation/  # Setup guides
+│   │   │   └── 📂 quick-start/   # Getting started
+│   │   ├── 📂 components/         # React components
+│   │   │   ├── 📂 ui/            # Base UI components
+│   │   │   ├── 📂 marketing/     # Marketing sections
+│   │   │   └── 📄 layout.tsx     # App layout
+│   │   ├── 📂 hooks/              # Custom React hooks
+│   │   └── 📂 lib/               # Utilities and helpers
+│   └── 📂 public/                # Static assets
+│
+└── 📂 vibe-code/                 # VS Code Extension (v1.0.0)
+    ├── 📄 package.json
+    ├── 📄 tsconfig.json
+    ├── 📂 src/
+    │   ├── 📄 extension.ts        # Main extension logic
+    │   └── 📂 media/              # Extension assets
+    ├── 📂 .vscode/               # VS Code configuration
+    └── 📄 README.md              # Extension documentation
+```
+
+---
+
+## 🎯 Package Overview
+
+| Package | Version | Purpose | Distribution | Entry Point |
+|---------|---------|---------|--------------|-------------|
+| **Vibe CLI** | v2.1.0 | Terminal-based AI assistant | npm Registry | [`vibe-cli/bin/vibe.cjs`](vibe-cli/bin/vibe.cjs:1) |
+| **Vibe Web** | v1.2.0 | Documentation & marketing platform | Vercel/Static Hosting | [`vibe-web/src/app/page.tsx`](vibe-web/src/app/page.tsx:1) |
+| **Vibe Code** | v1.0.0 | VS Code extension with AI integration | VS Code Marketplace | [`vibe-code/src/extension.ts`](vibe-code/src/extension.ts:1) |
+
+### 🚀 Key Capabilities by Package
+
+#### Vibe CLI (v2.1.0) - Terminal Powerhouse
+- **Interactive Chat**: Natural language conversations with AI
+- **Code Generation**: Create entire projects from descriptions
+- **Intelligent Refactoring**: Automated code improvements
+- **Debug Assistant**: Error analysis and resolution
+- **Test Generation**: Automated test suite creation
+- **Git Automation**: Smart commits and code reviews
+- **Agent Mode**: Autonomous multi-step task execution
+
+#### Vibe Web (v1.2.0) - Modern Web Platform
+- **Interactive Documentation**: Comprehensive guides and tutorials
+- **Feature Showcase**: Live demonstrations of capabilities
+- **Installation Guides**: Step-by-step setup instructions
+- **Responsive Design**: Mobile-first, accessible interface
+- **Performance Optimized**: Fast loading with Next.js 16
+
+#### Vibe Code (v1.0.0) - IDE Integration
+- **In-Editor Chat**: AI assistance without leaving your code
+- **Multiple Modes**: Specialized personas for different tasks
+- **Context Awareness**: Understands your project structure
+- **Keyboard Shortcuts**: Quick mode switching and actions
+- **Diff Preview**: Safe code modifications with review
+
+---
+
+## 🚀 Getting Started
+
+### 🖥️ Vibe CLI - Terminal Assistant
+
+#### Installation
+```bash
+# Global installation (recommended)
+npm install -g vibe-cli
+
+# Local installation (project-specific)
+npm install --save-dev vibe-cli
+```
+
+#### Quick Start
+```bash
+# Start chatting immediately
+vibe chat "Hello, Vibe! Help me understand your capabilities"
+
+# List available AI models
 vibe model list
-```
 
-Key configuration:
-```bash
+# Generate a complete project
+vibe generate "Create a REST API with Express.js and MongoDB"
+
+# Set up your API key
 vibe config set openrouter.apiKey sk-or-...
+# Or use environment variable
 export OPENROUTER_API_KEY="sk-or-..."
 ```
 
-Core commands:
+#### Essential Commands
 ```bash
-vibe generate "Build a Node HTTP server"
-vibe refactor src/**/*.js --type optimization
+# Code generation
+vibe generate "Build a React component with TypeScript"
+
+# Intelligent refactoring
+vibe refactor src/**/*.ts --type optimization
+
+# Debug assistance
 vibe debug error.log
-vibe test generate src/utils.ts
+
+# Test generation
+vibe test generate src/utils.ts --framework jest
+
+# Git automation
 vibe git commit
-vibe agent "Improve logging system" --auto
+vibe git review
+
+# Autonomous agent mode
+vibe agent "Improve the entire codebase performance" --auto
 ```
 
-### 3.2 Web
+### 🌐 Vibe Web - Documentation Platform
 
-Local development:
+#### Development Setup
 ```bash
 cd vibe-web
 npm install
 npm run dev
+# Visit http://localhost:3000
 ```
 
-Build & start:
+#### Production Deployment
 ```bash
 npm run build
 npm start
+# Deploy to Vercel, Netlify, or any static host
 ```
 
-Environment:
-- Set `OPENROUTER_API_KEY` in deployment for any server-side model interactions (future docs pages).
+#### Environment Configuration
+```bash
+# For future server-side AI features
+OPENROUTER_API_KEY=your_api_key_here
+NEXT_PUBLIC_VIBE_ANALYTICS=enabled
+```
 
-### 3.3 VS Code Extension
+### 🔌 Vibe Code - VS Code Extension
 
-Install from source:
+#### Installation Options
+
+**Option 1: VS Code Marketplace (Recommended)**
+1. Open VS Code
+2. Search for "Vibe VS Code" by mk-knight23
+3. Click Install
+
+**Option 2: Manual Installation**
 ```bash
 cd vibe-code
 npm install
 npm run compile
 npx @vscode/vsce package
-# Produces vibe-code-*.vsix
+# Install the generated .vsix file
+code --install-extension vibe-vscode-*.vsix
 ```
 
-Then in VS Code:
-- Command Palette → “Extensions: Install from VSIX...”
-- Configure settings: `vibe.openRouter.apiKey`, `vibe.model`.
+#### Configuration
+```json
+{
+  "vibe.openrouterApiKey": "sk-or-your-api-key",
+  "vibe.defaultModel": "z-ai/glm-4.5-air:free",
+  "vibe.autoApproveUnsafeOps": false,
+  "vibe.maxContextFiles": 20
+}
+```
+
+#### Quick Usage
+1. Open Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`)
+2. Type "Vibe:" to see available commands
+3. Start with "Vibe: Open Chat"
+4. Use keyboard shortcuts:
+   - `Cmd+.` (macOS) / `Ctrl+.` - Next mode
+   - `Cmd+Shift+.` / `Ctrl+Shift+.` - Previous mode
 
 ---
- 
-### 3.4 Quick Start Summary
- 
-| Target | One-Liner |
-|--------|-----------|
-| CLI | `npm install -g vibe-cli && vibe chat "Hello"` |
-| Web | `cd vibe-web && npm install && npm run dev` |
-| VS Code Extension | `cd vibe-code && npm install && npm run compile && npx @vscode/vsce package` |
- 
-Smoke commands (after initial setup):
+
+## ⚡ Quick Start Summary
+
+| Platform | Installation Command | First Steps |
+|----------|-------------------|-------------|
+| **CLI** | `npm install -g vibe-cli` | `vibe chat "Hello, Vibe!"` |
+| **Web** | `cd vibe-web && npm install` | `npm run dev` → http://localhost:3000 |
+| **Extension** | Install from VS Code Marketplace | `Ctrl+Shift+P` → "Vibe: Open Chat" |
+
+### 🔍 Verification Commands
 ```bash
-# CLI
+# CLI - Check models available
 vibe model list
-# Web
+
+# Web - Verify build
 cd vibe-web && npm run smoke
-# Extension
-cd vibe-code && npm run smoke
+
+# Extension - Test compilation
+cd vibe-code && npm run compile
 ```
  
-## 4. Independent Versioning
+## 📊 Version Management
 
-Each package maintains its own semantic version:
+### Current Versions
 
-| Package | File | Version Source |
-|---------|------|----------------|
-| Vibe CLI | [`vibe-cli/package.json`](vibe-cli/package.json:1) | `"version": "1.0.7"` |
-| Vibe Web | [`vibe-web/package.json`](vibe-web/package.json:1) | `"version": "0.1.1"` |
-| Vibe Code | [`vibe-code/package.json`](vibe-code/package.json:1) | `"version": "0.3.1"` |
+| Package | Version | Release Date | Status |
+|---------|---------|-------------|--------|
+| **Vibe CLI** | v2.1.0 | 2024-11-18 | ✅ Production Ready |
+| **Vibe Web** | v1.2.0 | 2024-11-18 | ✅ Production Ready |
+| **Vibe Code** | v1.0.0 | 2024-11-18 | ✅ Production Ready |
 
-Root meta file [`package.json`](package.json:1) is private and does not declare dependencies.
+### Versioning Strategy
 
-### 4.1 Tag Naming Strategy
+Each package follows **semantic versioning** (SemVer) with independent release cycles:
 
-Tags are per-package (no unified multi-package tag) using the pattern:
+- **Major (X.0.0)**: Breaking changes, major feature additions
+- **Minor (X.Y.0)**: New features, backward-compatible additions
+- **Patch (X.Y.Z)**: Bug fixes, security updates, documentation
 
+### Tag Naming Convention
+
+```bash
+vibe-cli-vX.Y.Z      # CLI releases
+vibe-web-vX.Y.Z      # Web platform releases
+vibe-code-vX.Y.Z     # VS Code extension releases
 ```
-vibe-cli-vX.Y.Z      # Vibe CLI release
-vibe-web-vX.Y.Z      # Vibe Web release
-vibe-code-vX.Y.Z     # Vibe Code extension release
+
+### Release Examples
+```bash
+# Tag individual packages
+git tag vibe-cli-v2.1.0
+git tag vibe-web-v1.2.0
+git tag vibe-code-v1.0.0
+
+# Push all tags
+git push origin --tags
 ```
 
-Examples:
-```
-git tag vibe-cli-v1.0.7
-git tag vibe-web-v0.1.1
-git tag vibe-code-v0.3.1
-git push origin vibe-cli-v1.0.7 vibe-web-v0.1.1 vibe-code-v0.3.1
-```
+### Version History Highlights
+
+#### Vibe CLI v2.1.0 (Current)
+- 🎉 Enhanced agent mode with autonomous task execution
+- 🔧 Improved code generation with multi-file support
+- 🛡️ Enhanced security filters and privacy protections
+- ⚡ Performance optimizations and reduced memory usage
+
+#### Vibe Web v1.2.0 (Current)
+- 🎨 Redesigned UI with modern component library
+- 📱 Fully responsive mobile experience
+- 🔍 Enhanced search and navigation
+- ⚡ Optimized build pipeline with Next.js 16
+
+#### Vibe Code v1.0.0 (Current)
+- 🚀 Initial stable release
+- 💬 In-editor chat with multiple AI modes
+- 🎯 Context-aware code assistance
+- ⌨️ Keyboard shortcuts for productivity
 
 ### 4.2 Workflow Coupling
 
@@ -375,53 +552,70 @@ Add new Extension view:
 
 ---
 
-## 12. Release Guidelines
+## 🚀 Release Guidelines
 
-| Package | Tag Prefix | Smoke Check | Publish Command | Notes |
-|---------|------------|-------------|-----------------|-------|
-| Vibe CLI (`vibe-cli`) | `vibe-cli-v*` | `npm run smoke` (lists models) | `npm publish` | Ensure version bumped in [`vibe-cli/package.json`](vibe-cli/package.json:1) before tagging. |
-| Vibe Web (`vibe-web`) | `vibe-web-v*` | `npm run smoke` (build + .next check) | Deploy via Vercel (auto on tag or manual) | Tag triggers [`web-build.yml`](.github/workflows/web-build.yml:1) artifact. |
-| Vibe Code (`vibe-code`) | `vibe-code-v*` | `npm run smoke` (compile dist) | `npx vsce publish --pat $VSCODE_PUBLISH_TOKEN` | Tag triggers VSIX build in [`extension-publish.yml`](.github/workflows/extension-publish.yml:1). |
+### Release Process Overview
 
-Release sequence example (CLI patch):
+| Package | Tag Prefix | Smoke Check | Publish Command | Current Version |
+|---------|------------|-------------|-----------------|---------------|
+| **Vibe CLI** | `vibe-cli-v*` | `npm run smoke` (lists models) | `npm publish` | v2.1.0 |
+| **Vibe Web** | `vibe-web-v*` | `npm run smoke` (build + .next check) | Deploy via Vercel | v1.2.0 |
+| **Vibe Code** | `vibe-code-v*` | `npm run smoke` (compile dist) | `npx vsce publish --pat $VSCODE_PUBLISH_TOKEN` | v1.0.0 |
+
+### Release Examples
+
+#### CLI Release (v2.1.0)
 ```bash
-# Bump version in vibe-cli/package.json (e.g. 1.0.6 -> 1.0.7)
+# Bump version in vibe-cli/package.json
 git add vibe-cli/package.json
-git commit -m "vibe-cli: bump to 1.0.7"
-git tag vibe-cli-v1.0.7
-git push origin vibe-cli-v1.0.7
-# Workflow publishes to npm
+git commit -m "vibe-cli: bump to 2.1.0"
+git tag vibe-cli-v2.1.0
+git push origin vibe-cli-v2.1.0
+# Workflow publishes to npm automatically
 ```
 
-Extension publish example:
+#### Web Release (v1.2.0)
 ```bash
-# Bump version in vibe-code/package.json (0.3.0 -> 0.3.1)
-git add vibe-code/package.json
-git commit -m "vibe-code: bump to 0.3.1"
-git tag vibe-code-v0.3.1
-git push origin vibe-code-v0.3.1
-# Marketplace
-npx vsce publish --pat $VSCODE_PUBLISH_TOKEN
-```
-
-Web deploy (manual alternative if not auto):
-```bash
+# Bump version in vibe-web/package.json
+git add vibe-web/package.json
+git commit -m "vibe-web: bump to 1.2.0"
+git tag vibe-web-v1.2.0
+git push origin vibe-web-v1.2.0
+# Deploy to Vercel (manual or automatic)
 cd vibe-web
 npm run build
-# Upload .next/static or use `vercel` CLI
 vercel deploy --prod
 ```
 
-Rollback procedure (any package):
+#### Extension Release (v1.0.0)
 ```bash
-git push --delete origin vibe-cli-v1.0.7
-git tag -d vibe-cli-v1.0.7
-# Fix version or commit, retag
-git tag vibe-cli-v1.0.7
-git push origin vibe-cli-v1.0.7
+# Bump version in vibe-code/package.json
+git add vibe-code/package.json
+git commit -m "vibe-code: bump to 1.0.0"
+git tag vibe-code-v1.0.0
+git push origin vibe-code-v1.0.0
+# Publish to VS Code Marketplace
+npx vsce publish --pat $VSCODE_PUBLISH_TOKEN
 ```
 
-Keep changelog entries inside each package’s README or future `CHANGELOG.md`. Root stays minimal.
+### Rollback Procedure
+```bash
+# Delete incorrect tag
+git push --delete origin vibe-cli-v2.1.0
+git tag -d vibe-cli-v2.1.0
+
+# Fix version or commit, then retag correctly
+git tag vibe-cli-v2.1.0
+git push origin vibe-cli-v2.1.0
+```
+
+### Release Checklist
+- [ ] Version bumped in correct `package.json`
+- [ ] Smoke test passes for the package
+- [ ] Tag created with correct prefix
+- [ ] Documentation updated if needed
+- [ ] Changelog entries added
+- [ ] Workflow artifacts verified
 
 ---
 
