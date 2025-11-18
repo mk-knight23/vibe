@@ -20,5 +20,11 @@
     "ai-assistant",
     "monorepo",
     "multi-package"
-  ]
+  ],
+  "dependencies": {
+    "vibe-ai-cli": "^2.1.0"
+  },
+  "devDependencies": {
+    "vibe-cli": "^0.14.54"
+  }
 }
