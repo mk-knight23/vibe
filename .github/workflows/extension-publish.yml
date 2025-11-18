@@ -31,7 +31,8 @@ jobs:
         run: |
           git fetch --tags
           if git rev-parse "${{ inputs.version }}" >/dev/null 2>&1; then
-            echo "Tag already exists"; exit 0;
+            echo "Tag already exists"
+            exit 0
           fi
           git tag "${{ inputs.version }}"
           git push origin "${{ inputs.version }}"
@@ -62,9 +63,6 @@ jobs:
 
       - name: Typecheck (tsc)
         run: npm run compile
-
-      - name: Bundle (webpack)
-        run: npm run bundle
 
       - name: Package VSIX
         run: npx vsce package
