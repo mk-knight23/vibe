@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 
 $packageName = 'vibe-ai-cli'
 $toolsDir = "$(Split-Path -parent $MyInvocation.MyCommand.Definition)"
-$url = 'https://github.com/mk-knight23/vibe/releases/download/v2.1.6/vibe-win.exe'
+$url = 'https://github.com/mk-knight23/vibe/releases/download/v2.1.7/vibe-win.exe'
 $checksum = 'placeholder_for_actual_checksum' # Will be updated during release
 
 $packageArgs = @{

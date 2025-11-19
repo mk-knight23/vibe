@@ -227,6 +227,12 @@ Agent core: [`vibe-cli/agent/agent.cjs`](vibe-cli/agent/agent.cjs:1).
 - **Tag Prefix**: `vibe-cli-vX.Y.Z`
 - **Release Type**: Independent semantic versioning
 
+### Distribution Files
+All installation packages and manifests are located in the `distribution/` directory:
+- **Homebrew Formula**: `distribution/homebrew/Formula/vibe-ai-cli.rb`
+- **Chocolatey Package**: `distribution/chocolatey/vibe-ai-cli/`
+- **Scoop Manifest**: `distribution/scoop/vibe-ai-cli.json`
+
 ### Release Process
 
 ```bash

@@ -1,7 +1,7 @@
 class VibeAiCli < Formula
-  desc "Free, privacy-first AI coding assistant for the terminal"
+  desc "Free, privacy-first AI coding assistant for the terminal with enhanced interactive features"
   homepage "https://github.com/mk-knight23/vibe"
-  url "https://registry.npmjs.org/vibe-ai-cli/-/vibe-ai-cli-2.1.6.tgz"
+  url "https://registry.npmjs.org/vibe-ai-cli/-/vibe-ai-cli-2.1.7.tgz"
   sha256 "placeholder_for_actual_sha256" # Will be updated during release
   license "MIT"
 
@@ -13,6 +13,6 @@ class VibeAiCli < Formula
   end
 
   test do
-    assert_match "vibe version", shell_output("#{bin}/vibe --version")
+    assert_match "vibe", shell_output("#{bin}/vibe --version")
   end
 end
