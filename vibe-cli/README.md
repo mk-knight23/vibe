@@ -1,11 +1,23 @@
-# Vibe CLI
+# Vibe CLI - Interactive AI Coding Assistant
 
-**Version: 2.1.0** | **Status: Production Ready** | **License: MIT**
+[![npm version](https://img.shields.io/npm/v/vibe-ai-cli.svg)](https://www.npmjs.com/package/vibe-ai-cli)
+[![License](https://img.shields.io/npm/l/vibe-ai-cli.svg)](LICENSE)
+[![Downloads](https://img.shields.io/npm/dm/vibe-ai-cli.svg)](https://www.npmjs.com/package/vibe-ai-cli)
 
-🤖 Free, privacy-first AI coding assistant for the terminal. Advanced chat, code generation, refactoring, debugging, test authoring, git automation, and autonomous agent workflows powered by OpenRouter's free models.
+🤖 **Free, privacy-first AI coding assistant for the terminal** with enhanced interactive features. Advanced chat, code generation, refactoring, debugging, test authoring, git automation, and autonomous agent workflows powered by OpenRouter's free models.
 
-## 🎉 What's New in v2.1.0
+## ✨ What's New in v2.1.5
 
+### 🌟 Interactive Enhancements
+- 🔄 **Visual Feedback**: Spinner animations for all long-running operations (model fetching, code generation, file operations, AI responses)
+- 📁 **Visual File Browser**: Interactive file tree display showing project structure with icons and hierarchy
+- 📜 **Command History**: Track up to 50 recent commands with `/history` command to view them
+- 🎯 **Enhanced Prompts**: Command suggestions, confirmations for destructive operations, and improved feedback
+- 🛡️ **Safety Prompts**: Confirmation dialogs for file overwrite, move, and delete operations
+- 🎨 **Better Visual Design**: Improved color coding, success/failure indicators, and context information
+- 💬 **Interactive Session Management**: Better export functionality and context tracking
+
+### 🔧 Core Improvements (v2.1.0+)
 - 🚀 **Enhanced Agent Mode**: Autonomous multi-step task execution with checkpoints
 - 🔧 **Improved Code Generation**: Multi-file project creation with better context awareness
 - 🛡️ **Enhanced Security**: Advanced filtering and privacy protections
@@ -166,7 +178,7 @@ Agent core: [`vibe-cli/agent/agent.cjs`](vibe-cli/agent/agent.cjs:1).
 ## 🚀 Versioning & Release Management
 
 ### Current Version
-- **Version**: v2.1.0 (2024-11-18)
+- **Version**: v2.1.5 (2025-11-19)
 - **Tag Prefix**: `vibe-cli-vX.Y.Z`
 - **Release Type**: Independent semantic versioning
 
@@ -194,7 +206,15 @@ git push origin vibe-cli-v2.1.1
 
 ### Version History Highlights
 
-#### v2.1.0 (Current)
+#### v2.1.5 (Current)
+- 🌟 **Interactive Enhancements**: Visual feedback, file browser, command history
+- 🔄 **Visual Feedback**: Spinner animations for all operations
+- 📁 **Visual File Browser**: Tree structure display with icons
+- 📜 **Command History**: Track and recall commands with `/history`
+- 🎯 **Enhanced Prompts**: Safety confirmations and suggestions
+- 🛡️ **Safety Improvements**: Confirmation dialogs for destructive operations
+
+#### v2.1.0 (Previous)
 - 🎉 **Agent Mode**: Autonomous task execution with checkpoints
 - 🔧 **Enhanced Codegen**: Multi-file project creation
 - 🛡️ **Security**: Advanced filtering and privacy
