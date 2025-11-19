@@ -37,7 +37,27 @@ Each package maintains independent versioning and release cycles while sharing a
 
 ### Vibe CLI (Terminal)
 ```bash
-npm install -g vibe-cli
+# Multiple Installation Methods
+
+# NPM (Cross-Platform)
+npm install -g vibe-ai-cli
+
+# Homebrew (macOS/Linux)
+brew install mk-knight23/tap/vibe-ai-cli
+
+# Chocolatey (Windows)
+choco install vibe-ai-cli
+
+# Scoop (Windows)
+scoop bucket add vibe https://github.com/mk-knight23/scoop-manifest
+scoop install vibe-ai-cli
+
+# Direct Binary
+# Download from GitHub Releases: https://github.com/mk-knight23/vibe/releases
+```
+
+Usage:
+```bash
 vibe chat "Hello, Vibe!"
 ```
 
@@ -231,11 +251,27 @@ vibe-ecosystem/
 
 #### Installation
 ```bash
-# Global installation (recommended)
-npm install -g vibe-cli
+# Multiple Installation Methods
+
+# NPM (Cross-Platform)
+npm install -g vibe-ai-cli
+
+# Homebrew (macOS/Linux)
+brew tap mk-knight23/tap
+brew install vibe-ai-cli
+
+# Chocolatey (Windows)
+choco install vibe-ai-cli
+
+# Scoop (Windows)
+scoop bucket add vibe https://github.com/mk-knight23/scoop-manifest
+scoop install vibe-ai-cli
+
+# Direct Binary (All Platforms)
+# Download from GitHub Releases: https://github.com/mk-knight23/vibe/releases
 
 # Local installation (project-specific)
-npm install --save-dev vibe-cli
+npm install --save-dev vibe-ai-cli
 ```
 
 #### Quick Start
@@ -344,7 +380,7 @@ code --install-extension vibe-vscode-*.vsix
 
 | Platform | Installation Command | First Steps |
 |----------|-------------------|-------------|
-| **CLI** | `npm install -g vibe-cli` | `vibe chat "Hello, Vibe!"` |
+| **CLI** | `npm install -g vibe-ai-cli` or `brew install vibe-ai-cli` or `choco install vibe-ai-cli` | `vibe chat "Hello, Vibe!"` |
 | **Web** | `cd vibe-web && npm install` | `npm run dev` → http://localhost:3000 |
 | **Extension** | Install from VS Code Marketplace | `Ctrl+Shift+P` → "Vibe: Open Chat" |
 

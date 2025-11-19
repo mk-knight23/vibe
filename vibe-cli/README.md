@@ -3,6 +3,9 @@
 [![npm version](https://img.shields.io/npm/v/vibe-ai-cli.svg)](https://www.npmjs.com/package/vibe-ai-cli)
 [![License](https://img.shields.io/npm/l/vibe-ai-cli.svg)](LICENSE)
 [![Downloads](https://img.shields.io/npm/dm/vibe-ai-cli.svg)](https://www.npmjs.com/package/vibe-ai-cli)
+[![Homebrew](https://img.shields.io/badge/homebrew-2.1.6-orange)](https://github.com/mk-knight23/homebrew-tap)
+[![Chocolatey](https://img.shields.io/badge/chocolatey-2.1.6-purple)](https://chocolatey.org/packages/vibe-ai-cli)
+[![Scoop](https://img.shields.io/badge/scoop-2.1.6-blue)](https://github.com/mk-knight23/scoop-manifest)
 
 🤖 **Free, privacy-first AI coding assistant for the terminal** with enhanced interactive features. Advanced chat, code generation, refactoring, debugging, test authoring, git automation, and autonomous agent workflows powered by OpenRouter's free models.
 
@@ -27,16 +30,43 @@
 
 ## 1. Installation
 
-Global (recommended):
-```bash
-npm install -g vibe-cli
-```
+### Multiple Installation Methods
 
-Local (project scope):
+#### NPM (Cross-Platform)
 ```bash
-npm install --save-dev vibe-cli
+# Global installation (recommended)
+npm install -g vibe-ai-cli
+
+# Local project installation
+npm install --save-dev vibe-ai-cli
 npx vibe --help
 ```
+
+#### Homebrew (macOS/Linux)
+```bash
+# Add the tap and install
+brew tap mk-knight23/tap
+brew install vibe-ai-cli
+```
+
+#### Chocolatey (Windows)
+```bash
+# Install from Chocolatey
+choco install vibe-ai-cli
+```
+
+#### Scoop (Windows)
+```bash
+# Add the bucket and install
+scoop bucket add vibe https://github.com/mk-knight23/scoop-manifest
+scoop install vibe-ai-cli
+```
+
+#### Direct Binary Download
+Download the appropriate binary for your platform from [GitHub Releases](https://github.com/mk-knight23/vibe/releases):
+- [Linux x64](https://github.com/mk-knight23/vibe/releases/download/v2.1.6/vibe-linux)
+- [macOS x64](https://github.com/mk-knight23/vibe/releases/download/v2.1.6/vibe-macos)
+- [Windows x64](https://github.com/mk-knight23/vibe/releases/download/v2.1.6/vibe-win.exe)
 
 Check version:
 ```bash

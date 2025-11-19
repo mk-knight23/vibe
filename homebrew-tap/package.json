@@ -1,0 +1,12 @@
+{
+  "name": "homebrew-tap",
+  "version": "1.0.0",
+  "description": "Homebrew tap for Vibe CLI",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["homebrew", "tap", "vibe", "cli"],
+  "author": "mk-knight23",
+  "license": "MIT"
+}

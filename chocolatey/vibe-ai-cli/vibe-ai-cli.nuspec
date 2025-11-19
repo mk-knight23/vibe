@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>vibe-ai-cli</id>
+    <version>2.1.6</version>
+    <packageSourceUrl>https://github.com/mk-knight23/vibe</packageSourceUrl>
+    <owners>mk-knight23</owners>
+    <title>Vibe AI CLI</title>
+    <authors>mk-knight23</authors>
+    <projectUrl>https://github.com/mk-knight23/vibe</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/mk-knight23/vibe/main/assets/vibe-logo.png</iconUrl>
+    <copyright>Copyright (c) 2025 mk-knight23</copyright>
+    <licenseUrl>https://github.com/mk-knight23/vibe/blob/main/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectSourceUrl>https://github.com/mk-knight23/vibe</projectSourceUrl>
+    <docsUrl>https://github.com/mk-knight23/vibe/blob/main/README.md</docsUrl>
+    <mailingListUrl>https://github.com/mk-knight23/vibe/issues</mailingListUrl>
+    <bugTrackerUrl>https://github.com/mk-knight23/vibe/issues</bugTrackerUrl>
+    <tags>ai cli development terminal coding assistant</tags>
+    <summary>Free, privacy-first AI coding assistant for the terminal</summary>
+    <description>
+Vibe CLI is a free, privacy-first AI coding assistant for the terminal with advanced chat, code generation, refactoring, debugging, test authoring, git automation, and autonomous agent workflows powered by OpenRouter's free models.
+
+Features:
+- Interactive chat with AI assistant
+- Code generation from natural language
+- Intelligent refactoring
+- Debug assistance
+- Test generation
+- Git integration
+- Autonomous agent mode
+- Enhanced interactive features (visual feedback, file browser, command history)
+    </description>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>
