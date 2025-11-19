@@ -6,7 +6,7 @@
 
 🤖 **Free, privacy-first AI coding assistant for the terminal** with enhanced interactive features. Advanced chat, code generation, refactoring, debugging, test authoring, git automation, and autonomous agent workflows powered by OpenRouter's free models.
 
-## ✨ What's New in v2.1.5
+## ✨ What's New in v2.1.6
 
 ### 🌟 Interactive Enhancements
 - 🔄 **Visual Feedback**: Spinner animations for all long-running operations (model fetching, code generation, file operations, AI responses)
@@ -178,7 +178,7 @@ Agent core: [`vibe-cli/agent/agent.cjs`](vibe-cli/agent/agent.cjs:1).
 ## 🚀 Versioning & Release Management
 
 ### Current Version
-- **Version**: v2.1.5 (2025-11-19)
+- **Version**: v2.1.6 (2025-11-19)
 - **Tag Prefix**: `vibe-cli-vX.Y.Z`
 - **Release Type**: Independent semantic versioning
 
@@ -206,7 +206,15 @@ git push origin vibe-cli-v2.1.1
 
 ### Version History Highlights
 
-#### v2.1.5 (Current)
+#### v2.1.6 (Current)
+- 🌟 **Interactive Enhancements**: Visual feedback, file browser, command history
+- 🔄 **Visual Feedback**: Spinner animations for all operations
+- 📁 **Visual File Browser**: Tree structure display with icons
+- 📜 **Command History**: Track and recall commands with `/history`
+- 🎯 **Enhanced Prompts**: Safety confirmations and suggestions
+- 🛡️ **Safety Improvements**: Confirmation dialogs for destructive operations
+
+#### v2.1.5 (Previous)
 - 🌟 **Interactive Enhancements**: Visual feedback, file browser, command history
 - 🔄 **Visual Feedback**: Spinner animations for all operations
 - 📁 **Visual File Browser**: Tree structure display with icons
