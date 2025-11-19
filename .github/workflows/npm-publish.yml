@@ -33,7 +33,7 @@ jobs:
             echo "::error title=Missing Secret::NPM_TOKEN is not set; publish will fail."
             exit 1
           else
-            echo "NPM_TOKEN present (length: ${#{{ secrets.NPM_TOKEN }}})"
+            echo "NPM_TOKEN is set (valid)"
           fi
 
       - name: Install dependencies
