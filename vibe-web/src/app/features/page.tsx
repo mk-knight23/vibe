@@ -1,11 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CheckCircle2, Terminal, Zap, Shield, Users, Code } from "lucide-react";
+import { CheckCircle2, Terminal, Code, Zap, Shield, Users, MessageSquare, Settings } from "lucide-react";
 import Link from "next/link";
 import { Button } from "../../components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 
-const features = [
+const cliFeatures = [
   {
     icon: Terminal,
     title: "Terminal-First Workflow",
@@ -13,8 +14,8 @@ const features = [
     details: [
       "Native terminal commands",
       "Shell integration",
-      "Command history",
-      "Auto-completion"
+      "Multi-step agent workflows",
+      "Git automation tools"
     ]
   },
   {
@@ -38,27 +39,41 @@ const features = [
       "Encrypted communications",
       "Open source transparency"
     ]
-  },
+  }
+];
+
+const codeFeatures = [
   {
-    icon: Users,
-    title: "Community Driven",
-    description: "Built by developers for developers with community feedback",
+    icon: Code,
+    title: "VS Code Integration",
+    description: "Full AI assistance integrated directly in your editor",
     details: [
-      "Open source development",
-      "Community contributions",
-      "Regular updates",
-      "Feature requests welcome"
+      "Six specialized AI modes",
+      "Multi-provider support (OpenRouter, MegaLLM)",
+      "Context-aware responses",
+      "Real-time suggestions"
     ]
   },
   {
-    icon: Code,
-    title: "Multi-Language Support",
-    description: "Works with all major programming languages and frameworks",
+    icon: MessageSquare,
+    title: "Rich Chat Interface",
+    description: "Interactive chat with copyable messages and clear history",
     details: [
-      "JavaScript/TypeScript",
-      "Python, Go, Rust",
-      "Java, C++, C#",
-      "Ruby, PHP, Swift"
+      "Click-to-copy message content",
+      "Clear chat functionality",
+      "Smooth scrolling with custom scrollbars",
+      "Dark/light theme support"
+    ]
+  },
+  {
+    icon: Settings,
+    title: "Advanced Controls",
+    description: "Customizable settings and workflow controls",
+    details: [
+      "Multiple AI personas",
+      "Model selection",
+      "Chat vs Agent mode",
+      "Keyboard shortcuts"
     ]
   }
 ];
@@ -87,59 +102,113 @@ export default function FeaturesPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
         >
-          Everything you need for AI-powered development workflows in your terminal
+          Everything you need for AI-powered development workflows with both CLI and VS Code
         </motion.p>
       </motion.div>
 
-      {/* Features Grid */}
-      <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-        {features.map((feature, index) => (
-          <motion.div
-            key={feature.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: index * 0.1 }}
-            whileHover={{ scale: 1.02 }}
-            className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/70 p-6 backdrop-blur-sm glow-border ambient"
-          >
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent text-primary-foreground">
-                <feature.icon className="h-6 w-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground mb-4">{feature.description}</p>
-                <ul className="space-y-2">
-                  {feature.details.map((detail) => (
-                    <li key={detail} className="flex items-center gap-2 text-sm">
-                      <CheckCircle2 className="h-4 w-4 text-accent" />
-                      <span>{detail}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+      {/* Feature Tabs */}
+      <div className="mb-16 glow-border ambient rounded-2xl p-2">
+        <Tabs defaultValue="cli" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 rounded-xl bg-card/40 backdrop-blur-sm border border-border/40 p-1 relative z-10">
+            <TabsTrigger
+              value="cli"
+              className="rounded-lg px-4 py-2 text-sm font-medium ease-smooth data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-foreground data-[state=active]:shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_4px_12px_-2px_rgba(34,211,238,0.35)] hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              Vibe CLI
+            </TabsTrigger>
+            <TabsTrigger
+              value="code"
+              className="rounded-lg px-4 py-2 text-sm font-medium ease-smooth data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-foreground data-[state=active]:shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_4px_12px_-2px_rgba(34,211,238,0.35)] hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              Vibe Code
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="cli" className="mt-8 animate-in fade-in-50 slide-in-from-top-2">
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {cliFeatures.map((feature, index) => (
+                <motion.div
+                  key={feature.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  whileHover={{ scale: 1.02 }}
+                  className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/70 p-6 backdrop-blur-sm glow-border ambient"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent text-primary-foreground">
+                      <feature.icon className="h-6 w-6" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+                      <p className="text-muted-foreground mb-4">{feature.description}</p>
+                      <ul className="space-y-2">
+                        {feature.details.map((detail) => (
+                          <li key={detail} className="flex items-center gap-2 text-sm">
+                            <CheckCircle2 className="h-4 w-4 text-accent" />
+                            <span>{detail}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
             </div>
-          </motion.div>
-        ))}
+          </TabsContent>
+
+          <TabsContent value="code" className="mt-8 animate-in fade-in-50 slide-in-from-top-2">
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {codeFeatures.map((feature, index) => (
+                <motion.div
+                  key={feature.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  whileHover={{ scale: 1.02 }}
+                  className="group relative overflow-hidden rounded-xl border border-border/50 bg-card/70 p-6 backdrop-blur-sm glow-border ambient"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent text-primary-foreground">
+                      <feature.icon className="h-6 w-6" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+                      <p className="text-muted-foreground mb-4">{feature.description}</p>
+                      <ul className="space-y-2">
+                        {feature.details.map((detail) => (
+                          <li key={detail} className="flex items-center gap-2 text-sm">
+                            <CheckCircle2 className="h-4 w-4 text-accent" />
+                            <span>{detail}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
-      {/* CTA Section */}
+      {/* Unified CTA Section */}
       <motion.div
         className="mx-auto mt-16 max-w-2xl text-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8, delay: 0.6 }}
       >
-        <h2 className="text-2xl font-semibold mb-4">Ready to get started?</h2>
+        <h2 className="text-2xl font-semibold mb-4">Ready to get started with both tools?</h2>
         <p className="text-muted-foreground mb-8">
-          Experience the power of AI-assisted development in your terminal today
+          Experience the power of AI-assisted development with CLI and VS Code
         </p>
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
           <Button asChild size="lg" className="bg-gradient-to-r from-primary to-accent">
-            <Link href="/installation">Install Vibe</Link>
+            <Link href="/installation">Install Both Tools</Link>
           </Button>
           <Button asChild size="lg" variant="outline">
-            <Link href="/quick-start">View Quick Start</Link>
+            <Link href="/chat">Try AI Chat</Link>
           </Button>
         </div>
       </motion.div>

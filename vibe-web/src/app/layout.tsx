@@ -6,8 +6,8 @@ import Footer from '../components/footer';
 import { ThemeProvider } from '../components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'Vibe CLI Companion',
-  description: 'Your Free AI Coding CLI — Agentic Workflows in Terminal',
+  title: 'VIBE',
+  description: 'Vibe: Your Free AI Coding CLI and VS Code Extension',
 };
 
 export default function RootLayout({

@@ -4,13 +4,24 @@ import { useTheme } from "next-themes";
 import { Sun, Moon } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "./ui/button";
+import { useEffect, useState } from "react";
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
   };
+
+  // Only render after mounting to prevent hydration errors completely
+  if (!isMounted) {
+    return null; // Don't render anything during SSR/hydration
+  }
 
   return (
     <Button

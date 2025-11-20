@@ -68,22 +68,12 @@ export default function TestimonialsSection() {
                       </svg>
                     </div>
                     <p className="mb-8 text-2xl font-medium italic leading-relaxed text-foreground">
-                      “I ship PRs faster without leaving my shell.”
+                      “Vibe has transformed how I approach coding with AI assistance.”
                     </p>
                     <div className="mt-4 flex flex-col items-center gap-4">
-                      {testimonialAuthorImage && (
-                        <Image
-                          src={testimonialAuthorImage.imageUrl}
-                          alt={testimonialAuthorImage.description}
-                          data-ai-hint={testimonialAuthorImage.imageHint}
-                          width={72}
-                          height={72}
-                          className="rounded-full border border-accent/40 shadow-[0_0_0_2px_rgba(255,255,255,0.05),0_8px_30px_-6px_rgba(34,211,238,0.35)]"
-                        />
-                      )}
                       <div className="text-center">
-                        <p className="font-semibold tracking-wide">Lena Ortiz</p>
-                        <p className="text-sm text-muted-foreground">Staff Engineer</p>
+                        <p className="font-semibold tracking-wide">Developer Community</p>
+                        <p className="text-sm text-muted-foreground">Open Source Contributors</p>
                       </div>
                     </div>
                   </CardContent>

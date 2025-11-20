@@ -21,14 +21,15 @@ const navSections = [
     title: 'Features',
     items: [
       { href: '/commands', label: 'Commands', description: 'Chat, agent, refactor, test, model ops' },
+      { href: '/chat', label: 'AI Chat', description: 'Interactive chat with OpenRouter & MegaLLM' },
       { href: '/features', label: 'Features', description: 'Core ergonomics & capability overview' },
     ]
   },
   {
     title: 'Resources',
     items: [
+      { href: '/docs', label: 'Documentation', description: 'Comprehensive guides for CLI and extension' },
       { href: '/pricing', label: 'Pricing', description: 'Free usage model + future tiers' },
-      { href: '/docs', label: 'Docs', description: 'Capabilities & integration surfaces' },
       { href: '/faq', label: 'FAQ', description: 'Common questions & security stance' },
     ]
   },

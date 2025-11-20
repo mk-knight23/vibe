@@ -1,10 +1,10 @@
 # Vibe Web
 
-**Version: 1.2.0** | **Status: Production Ready** | **License: MIT**
+**Version: 1.3.0** | **Status: Production Ready** | **License: MIT**
 
 🌐 Modern marketing, onboarding, and documentation platform for the Vibe AI development ecosystem. Built with Next.js 16, Tailwind CSS 4, and Radix UI for an exceptional user experience.
 
-## 🎯 What's New in v1.2.0
+## 🎯 What's New in v1.3.0
 
 - 🎨 **Complete UI Redesign**: Modern component library with enhanced accessibility
 - 📱 **Mobile-First Design**: Fully responsive experience across all devices
@@ -12,14 +12,22 @@
 - ⚡ **Performance Optimizations**: Faster builds with Next.js 16 and Turbopack
 - 🎭 **Dark/Light Themes**: Seamless theme switching with system preference detection
 - 📊 **Interactive Components**: Rich user interactions with smooth animations
+- 💬 **AI Chat Interface**: Interactive chat with OpenRouter and MegaLLM integration
+- 📚 **Comprehensive Documentation**: Detailed guides for both Vibe CLI and Vibe Code
+- 🚀 **Enhanced Onboarding**: Interactive quick start guides for both tools
+- 📋 **Detailed FAQ**: Comprehensive answers for both CLI and VS Code extension
+- 💰 **Pricing Information**: Clear free vs pro feature breakdown
+- ⚡ **Improved Performance**: Better hydration handling and faster loading
+- 🔧 **Enhanced UX**: Interactive code copying, command examples, and progress tracking
 
 ## 🎯 Platform Purpose
 
 Vibe Web serves as the central hub for the Vibe AI development ecosystem, providing:
 
-- **📚 Comprehensive Documentation**: In-depth guides for all Vibe components
-- **🚀 Interactive Onboarding**: Step-by-step tutorials and getting started experiences
-- **🎨 Feature Showcase**: Live demonstrations of ecosystem capabilities
+- **📚 Comprehensive Documentation**: In-depth guides for both Vibe CLI and Vibe Code extension
+- **🚀 Interactive Onboarding**: Step-by-step tutorials and getting started experiences for both tools
+- **💬 AI Chat Interface**: Direct access to AI assistance with OpenRouter and MegaLLM support
+- **🎨 Feature Showcase**: Live demonstrations of ecosystem capabilities for CLI and VS Code
 - **📱 Responsive Design**: Optimized experience across all devices and screen sizes
 - **⚡ Performance-First**: Fast loading with modern web technologies
 - **🔧 Developer-Friendly**: Easy deployment and maintenance workflows
@@ -33,12 +41,15 @@ Vibe Web serves as the central hub for the Vibe AI development ecosystem, provid
 - **Accessibility**: WCAG 2.1 compliant components with keyboard navigation
 - **Component Library**: Reusable UI primitives built on Radix UI
 
-### 📚 Content Management
-- **Interactive Documentation**: Rich, searchable content with syntax highlighting
+### 📚 Content Management & Interactive Features
+- **Interactive Documentation**: Rich, searchable content with syntax highlighting for both CLI and VS Code
+- **Tabbed Interfaces**: Organization of content for different tools
 - **Installation Guides**: Step-by-step setup for all platforms
-- **Command Reference**: Complete CLI command documentation with examples
-- **FAQ Section**: Common questions and troubleshooting guides
-- **Quick Start**: Accelerated onboarding for new users
+- **Command Reference**: Complete CLI and VS Code command documentation with examples
+- **FAQ Section**: Comprehensive answers for both tools
+- **Quick Start**: Interactive guides with progress tracking for both tools
+- **AI Chat Interface**: Browser-based chat with OpenRouter and MegaLLM support
+- **Pricing Information**: Clear free vs pro feature breakdown
 
 ### 🔧 Technical Excellence
 - **Next.js 16**: Latest App Router with Turbopack for fast builds
@@ -155,9 +166,13 @@ npm start
 | Page | Path | Component |
 |------|------|-----------|
 | Landing | `/` | [`src/app/page.tsx`](vibe-web/src/app/page.tsx:1) |
+| Chat | `/chat` | [`src/app/chat/page.tsx`](vibe-web/src/app/chat/page.tsx:1) |
 | Commands | `/commands` | [`src/app/commands/page.tsx`](vibe-web/src/app/commands/page.tsx:1) |
+| Documentation | `/docs` | [`src/app/docs/page.tsx`](vibe-web/src/app/docs/page.tsx:1) |
 | Installation | `/installation` | [`src/app/installation/page.tsx`](vibe-web/src/app/installation/page.tsx:1) |
 | Quick Start | `/quick-start` | [`src/app/quick-start/page.tsx`](vibe-web/src/app/quick-start/page.tsx:1) |
+| FAQ | `/faq` | [`src/app/faq/page.tsx`](vibe-web/src/app/faq/page.tsx:1) |
+| Pricing | `/pricing` | [`src/app/pricing/page.tsx`](vibe-web/src/app/pricing/page.tsx:1) |
 
 ## 6. Components Highlights
 
@@ -322,18 +337,22 @@ Reference: [`VERSIONING.md`](VERSIONING.md:1) and root [`README.md`](README.md:1
 - Accessible components following WCAG guidelines
 
 ### 📚 Content Sections
-- **Hero Section**: Eye-catching landing with value proposition
-- **Features**: Comprehensive showcase of Vibe ecosystem capabilities
-- **Commands**: Interactive CLI command documentation
+- **Hero Section**: Eye-catching landing with value proposition for both tools
+- **Features**: Comprehensive showcase of Vibe ecosystem capabilities with tabbed interface
+- **Commands**: Interactive CLI and VS Code command documentation
+- **Documentation**: Detailed guides for both CLI and VS Code extension
 - **Installation**: Step-by-step setup guides for all components
-- **Quick Start**: Accelerated onboarding for new users
-- **FAQ**: Common questions and troubleshooting
+- **Quick Start**: Interactive onboarding with progress tracking for both tools
+- **Chat Interface**: Browser-based AI chat with multi-provider support
+- **FAQ**: Comprehensive answers for both CLI and VS Code extension
+- **Pricing**: Clear breakdown of free vs pro features
 
 ### 🔧 Technical Highlights
 - Optimized build pipeline with Next.js 16
 - Component-based architecture with reusable UI primitives
 - SEO-friendly with proper meta tags and structured data
 - Performance optimized with lazy loading and code splitting
+- Improved hydration handling for better client-server compatibility
 
 ## 15. Future Roadmap
 
