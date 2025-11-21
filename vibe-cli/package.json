@@ -1,70 +1,31 @@
 {
   "name": "vibe-ai-cli",
-  "version": "2.1.8",
-  "description": "Free, privacy-first AI coding assistant CLI (chat, codegen, refactor, debug, test, git, agent).",
+  "version": "3.0.0",
+  "description": "Free, privacy-first AI coding assistant CLI (chat, codegen, refactor, debug, test, git, agent) with dual-provider support (OpenRouter & MegaLLM).",
   "author": "mk-knight23 <noreply@users.noreply.github.com>",
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/mk-knight23/vibe",
-    "directory": "vibe-cli"
-  },
-  "bugs": {
-    "url": "https://github.com/mk-knight23/vibe/issues"
-  },
-  "homepage": "https://github.com/mk-knight23/vibe#readme",
-  "keywords": [
-    "vibe",
-    "cli",
-    "openrouter",
-    "ai",
-    "code",
-    "assistant",
-    "ai-assistant",
-    "developer-tools"
-  ],
+  "main": "./dist/bin/cli.js",
   "bin": {
-    "vibe": "bin/cli.cjs"
+    "vibe": "./dist/bin/cli.js"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "files": [
-    "bin/cli.cjs",
-    "core/",
-    "agent/",
-    "code/",
-    "edit/",
-    "git/",
-    "refactor/",
-    "debug/",
-    "test/",
-    "tools.cjs",
+    "dist/",
     "LICENSE",
     "README.md",
     "package.json"
   ],
-  "exports": {
-    ".": "./bin/cli.cjs",
-    "./core/*": "./core/*",
-    "./agent/*": "./agent/*",
-    "./code/*": "./code/*",
-    "./edit/*": "./edit/*",
-    "./git/*": "./git/*",
-    "./refactor/*": "./refactor/*",
-    "./debug/*": "./debug/*",
-    "./test/*": "./test/*"
-  },
-  "type": "commonjs",
-  "sideEffects": false,
   "engines": {
     "node": ">=18"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.cli.json",
+    "build": "tsc",
+    "build:watch": "tsc --watch",
     "prepare": "npm run build",
-    "build:bin": "pkg -t node18-linux-x64,node18-macos-x64,node18-win-x64 --out-path dist bin/cli.cjs && mv dist/cli-linux dist/vibe-linux || true && mv dist/cli-macos dist/vibe-macos || true && mv dist/cli-win.exe dist/vibe-win.exe || true",
-    "release:check": "node -e \"console.log('Tag to release, e.g., vibe-cli-v1.0.6')\"",
     "test": "echo \"No tests for CLI – skipping\"",
-    "smoke": "node bin/cli.cjs model list || echo 'model list executed'",
-    "start": "node bin/cli.cjs"
+    "start": "node dist/bin/cli.js"
   },
   "dependencies": {
     "chokidar": "^3.6.0",
@@ -73,12 +34,10 @@
     "node-fetch": "^3.3.2",
     "ora": "^9.0.0",
     "picocolors": "^1.1.1",
-    "simple-git": "^3.27.0",
-    "vibe-ai-cli": "^2.1.1"
+    "simple-git": "^3.27.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.30",
-    "pkg": "^5.8.1",
     "typescript": "^5.6.3"
   }
 }

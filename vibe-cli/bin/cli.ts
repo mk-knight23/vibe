@@ -1,29 +1,28 @@
 #!/usr/bin/env node
-const inquirerModule = require('inquirer');
-const inquirer = inquirerModule.default || inquirerModule;
-// Replaced axios with native fetch to support pkg snapshot builds
-// Node 18+ provides global fetch
 
-const fs = require('fs');
-const path = require('path');
-const pc = require('picocolors');
-const oraModule = require('ora');
-const ora = oraModule.default || oraModule;
-const { exec } = require('child_process');
-const { webSearch, webFetchDocs } = require(path.join(__dirname, '..', 'tools.cjs'));
-const { getApiKey } = require(path.join(__dirname, '..', 'core', 'apikey.cjs'));
-const fg = require('fast-glob');
+import inquirer from 'inquirer';
+import fs from 'fs';
+import path from 'path';
+import pc from 'picocolors';
+import ora from 'ora';
+import { exec } from 'child_process';
+import fg from 'fast-glob';
+import { webSearch, webFetchDocs, getApiKey, chatCompletion, quickRefactor, quickDebug, quickTestGeneration, smartCommit, runAutonomousAgent, generateCode, generateCompletion, reviewChanges, createPR, smartStatus } from '../core/index';
 
 // HTTP helpers using native fetch with timeout and axios-compatible errors
-function fetchWithTimeout(resource, options = {}) {
+async function fetchWithTimeout(resource: string, options: { timeout?: number; [key: string]: any } = {}) {
   const { timeout = 30000, ...rest } = options;
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
-  return fetch(resource, { ...rest, signal: controller.signal })
-    .finally(() => clearTimeout(id));
+  try {
+    const result = await fetch(resource, { ...rest, signal: controller.signal });
+    return result;
+  } finally {
+    clearTimeout(id);
+  }
 }
 
-async function httpGetJson(url, { headers = {}, timeout = 30000 } = {}) {
+async function httpGetJson(url: string, { headers = {}, timeout = 30000 }: { headers?: Record<string, string>; timeout?: number } = {}) {
   const res = await fetchWithTimeout(url, { headers, timeout, method: 'GET' });
   const contentType = res.headers.get('content-type') || '';
   const body = contentType.includes('application/json') ? await res.json() : await res.text();
@@ -33,7 +32,7 @@ async function httpGetJson(url, { headers = {}, timeout = 30000 } = {}) {
   return { data: body };
 }
 
-async function httpPostJson(url, body, { headers = {}, timeout = 30000 } = {}) {
+async function httpPostJson(url: string, body: any, { headers = {}, timeout = 30000 }: { headers?: Record<string, string>; timeout?: number } = {}) {
   const res = await fetchWithTimeout(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...headers },
@@ -56,16 +55,16 @@ const DEFAULT_MODEL_ID = 'z-ai/glm-4.5-air:free';
 const DEFAULT_SYSTEM_PROMPT = 'You are an interactive CLI assistant for software engineering. Be concise and direct. Only assist with defensive security tasks; refuse to create, modify, or improve code that may be used maliciously. Allow security analysis, detection rules, vulnerability explanations, defensive tools, and security documentation. Never guess URLs; only use user-provided or known programming docs URLs. Minimize output.';
 
 // Enhanced command history
-const COMMAND_HISTORY = [];
+const COMMAND_HISTORY: string[] = [];
 const MAX_HISTORY = 50;
 
-function isFreeModel(model) {
+function isFreeModel(model: any): boolean {
   try {
     if (model?.is_free) return true;
     const pricing = model?.pricing || model?.top_provider?.pricing;
     if (!pricing) return false;
-    const nums = [];
-    const pushNum = (val) => {
+    const nums: number[] = [];
+    const pushNum = (val: string | number | undefined | null) => {
       if (val === undefined || val === null) return;
       if (typeof val === 'string') {
         const n = Number(val.replace(/[^0-9.]/g, ''));
@@ -84,7 +83,7 @@ function isFreeModel(model) {
   }
 }
 
-async function fetchModels(apiKey) {
+async function fetchModels(apiKey: string) {
   const res = await httpGetJson(`${OPENROUTER_BASE}/models`, {
     headers: { Authorization: `Bearer ${apiKey}` },
     timeout: 30000,
@@ -97,7 +96,7 @@ async function fetchModels(apiKey) {
   return freeModels;
 }
 
-async function selectModel(models) {
+async function selectModel(models: any[]) {
   if (!models || models.length === 0) throw new Error('No models available.');
   const choices = models.map((m) => ({
     name: `${m.name || m.id} ${isFreeModel(m) ? '(free)' : ''}`.trim(),
@@ -117,13 +116,13 @@ async function selectModel(models) {
 
 function setupToolAccess() {
   return {
-    async search(query) {
+    async search(query: string) {
       return await webSearch(query);
     },
   };
 }
 
-function isDisallowedSecurityRequest(text) {
+function isDisallowedSecurityRequest(text: string): boolean {
   try {
     const s = String(text || '').toLowerCase();
     const bad = [
@@ -136,7 +135,7 @@ function isDisallowedSecurityRequest(text) {
   }
 }
 
-function ensureDir(dir) {
+function ensureDir(dir: string) {
   try {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   } catch (e) {
@@ -144,7 +143,7 @@ function ensureDir(dir) {
   }
 }
 
-function saveTranscript(filename, messages) {
+function saveTranscript(filename: string | undefined, messages: any[]) {
   ensureDir(TRANSCRIPTS_DIR);
   const safe = filename || `chat_${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
   const file = path.join(TRANSCRIPTS_DIR, safe);
@@ -213,11 +212,11 @@ function showCommandHistory() {
 }
 
 // Function to create a visual file tree
-function createFileTree(dir, prefix = '', maxDepth = 2, currentDepth = 0) {
+function createFileTree(dir: string, prefix = '', maxDepth = 2, currentDepth = 0) {
   if (currentDepth > maxDepth) return [];
 
   const items = fs.readdirSync(dir);
-  const tree = [];
+  const tree: string[] = [];
 
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
@@ -237,7 +236,7 @@ function createFileTree(dir, prefix = '', maxDepth = 2, currentDepth = 0) {
   return tree;
 }
 
-async function startChat(initialModel) {
+async function startChat(initialModel: string) {
   let model = initialModel || DEFAULT_MODEL_ID;
   console.log(pc.green(`\nStarting chat with model: ${model}`));
   console.log('Type ' + pc.yellow('"/help"') + ' for available commands.');
@@ -278,7 +277,7 @@ async function startChat(initialModel) {
         { type: 'input', name: 'userInput', message: pc.cyan('You:'),
           // Add history for command recall
           suggestOnly: true,
-          transformer: (input) => {
+          transformer: (input: string) => {
             if (input.startsWith('/')) {
               // Show suggestions for commands
               const suggestions = ['/help', '/models', '/generate', '/edit', '/files', '/search', '/run', '/exit'];
@@ -368,7 +367,7 @@ async function startChat(initialModel) {
         const injected = `Code execution result for "${code}":\n${result}`;
         messages.push({ role: 'system', content: injected });
         console.log(pc.gray('(Code execution result injected into context)'));
-      } catch (e) {
+      } catch (e: any) {
         console.error(pc.red('Code execution failed:'), e.message);
       }
       continue;
@@ -428,7 +427,7 @@ async function startChat(initialModel) {
         const selectedModel = await selectModel(models);
         model = selectedModel;
         console.log(pc.green(`Switched to model: ${model}`));
-      } catch (e) {
+      } catch (e: any) {
         console.error('Failed to switch model:', e?.message || e);
       }
       continue;
@@ -461,7 +460,7 @@ async function startChat(initialModel) {
         const injected = `Web search results for "${query}":\n${result}`;
         messages.push({ role: 'system', content: injected });
         console.log(pc.gray('(Search results injected into context)'));
-      } catch (e) {
+      } catch (e: any) {
         console.error('Search failed:', e?.message || e);
       }
       continue;
@@ -652,7 +651,7 @@ async function startChat(initialModel) {
         try {
           fs.unlinkSync(f);
           console.log(pc.green(`Deleted ${f}`));
-        } catch (e) {
+        } catch (e: any) {
           console.log(pc.red(`Failed ${f}: ${e?.message||e}`));
         }
       }
@@ -666,7 +665,7 @@ async function startChat(initialModel) {
 
       const spinner = ora('Generating code...').start();
       try {
-        const { generateCode } = require(path.join(__dirname, '..', 'code', 'codegen.cjs'));
+        // generateCode is now available from core import
         const result = await generateCode(prompt);
         spinner.succeed('Code generation completed');
         console.log(pc.green(`Generated ${result.language} code:`));
@@ -674,7 +673,7 @@ async function startChat(initialModel) {
 
         const injected = `Generated code:\n\`\`\`${result.language}\n${result.code}\n\`\`\``;
         messages.push({ role: 'system', content: injected });
-      } catch (e) {
+      } catch (e: any) {
         spinner.fail('Code generation failed');
         console.error(pc.red('Code generation failed:'), e.message);
       }
@@ -692,15 +691,15 @@ async function startChat(initialModel) {
 
       const spinner = ora(`Getting completion for: ${filePath}`).start();
       try {
-        const { generateCompletion } = require(path.join(__dirname, '..', 'code', 'codegen.cjs'));
+        // generateCompletion is now available from core import
         const result = await generateCompletion(filePath);
         spinner.succeed('Completion suggestions ready');
         console.log(pc.green(`Found ${result.suggestions.length} suggestions:`));
-        result.suggestions.forEach((suggestion, index) => {
+        result.suggestions.forEach((suggestion: string, index: number) => {
           console.log(`\n${pc.cyan(`Suggestion ${index + 1}:`)}`);
           console.log(suggestion);
         });
-      } catch (e) {
+      } catch (e: any) {
         spinner.fail('Code completion failed');
         console.error(pc.red('Code completion failed:'), e.message);
       }
@@ -713,15 +712,15 @@ async function startChat(initialModel) {
 
       const spinner = ora(`Refactoring: ${pattern}`).start();
       try {
-        const { quickRefactor } = require(path.join(__dirname, '..', 'refactor', 'refactor.cjs'));
-        const result = await quickRefactor(pattern, 'clean');
+        // quickRefactor is now available from core import
+        const result = await quickRefactor(pattern, { strategy: 'clean' });
         spinner.succeed('Refactoring completed');
         if (result.success) {
           console.log(pc.green('Refactoring completed successfully!'));
         } else {
           console.log(pc.yellow(result.message));
         }
-      } catch (e) {
+      } catch (e: any) {
         spinner.fail('Refactoring failed');
         console.error(pc.red('Refactoring failed:'), e.message);
       }
@@ -734,11 +733,11 @@ async function startChat(initialModel) {
 
       const spinner = ora('Debugging...').start();
       try {
-        const { quickDebug } = require(path.join(__dirname, '..', 'debug', 'debug.cjs'));
+        // quickDebug is now available from core import
         const result = await quickDebug(error);
         spinner.succeed('Debug analysis completed');
         console.log(pc.green('Debug analysis completed'));
-      } catch (e) {
+      } catch (e: any) {
         spinner.fail('Debug analysis failed');
         console.error(pc.red('Debug analysis failed:'), e.message);
       }
@@ -751,11 +750,11 @@ async function startChat(initialModel) {
 
       const spinner = ora(`Generating tests for: ${filePath}`).start();
       try {
-        const { quickTestGeneration } = require(path.join(__dirname, '..', 'test', 'testgen.cjs'));
+        // quickTestGeneration is now available from core import
         const result = await quickTestGeneration(filePath);
         spinner.succeed('Test generation completed');
         console.log(pc.green('Test generation completed'));
-      } catch (e) {
+      } catch (e: any) {
         spinner.fail('Test generation failed');
         console.error(pc.red('Test generation failed:'), e.message);
       }
@@ -768,7 +767,7 @@ async function startChat(initialModel) {
 
       const spinner = ora(`Reviewing: ${target}`).start();
       try {
-        const { reviewChanges } = require(path.join(__dirname, '..', 'git', 'gittools.cjs'));
+        // reviewChanges is now available from core import
         const result = await reviewChanges({
           file: target === 'git' ? null : target,
           focus: 'all'
@@ -777,7 +776,7 @@ async function startChat(initialModel) {
         if (result.success) {
           console.log(pc.green('Code review completed'));
         }
-      } catch (e) {
+      } catch (e: any) {
         spinner.fail('Code review failed');
         console.error(pc.red('Code review failed:'), e.message);
       }
@@ -790,7 +789,7 @@ async function startChat(initialModel) {
 
       const spinner = ora(`Git operation: ${gitCmd}`).start();
       try {
-        const { smartCommit, reviewChanges, createPR, smartStatus } = require('./git/gittools.cjs');
+        // These functions are now available from core import
 
         if (gitCmd.startsWith('commit')) {
           const result = await smartCommit({ addAll: true });
@@ -815,7 +814,7 @@ async function startChat(initialModel) {
           spinner.succeed('Git operation completed');
           console.log(pc.green(`Git status: ${result.branch}`));
         }
-      } catch (e) {
+      } catch (e: any) {
         spinner.fail('Git operation failed');
         console.error(pc.red('Git operation failed:'), e.message);
       }
@@ -828,7 +827,7 @@ async function startChat(initialModel) {
 
       const spinner = ora(`Running agent task: ${task}`).start();
       try {
-        const { runAutonomousAgent } = require(path.join(__dirname, '..', 'agent', 'agent.cjs'));
+        // runAutonomousAgent is now available from core import
         const result = await runAutonomousAgent(task, { auto: false });
         spinner.succeed('Agent task completed');
         if (result.success) {
@@ -836,7 +835,7 @@ async function startChat(initialModel) {
         } else {
           console.log(pc.yellow('Agent task completed with issues'));
         }
-      } catch (e) {
+      } catch (e: any) {
         spinner.fail('Agent task failed');
         console.error(pc.red('Agent task failed:'), e.message);
       }
@@ -891,7 +890,7 @@ async function startChat(initialModel) {
         console.log('\n' + pc.bold('Assistant:') + ' ' + content + '\n');
         messages.push({ role: 'assistant', content });
       }
-    } catch (err) {
+    } catch (err: any) {
       spinner.fail('Request failed');
       const status = err?.response?.status;
       const data = err?.response?.data;
@@ -908,7 +907,7 @@ function printAsciiWelcome() {
   try {
     const os = require('os');
     const username = (os.userInfo && os.userInfo().username) || process.env.USER || process.env.USERNAME || 'User';
-    const pkgPath = path.join(__dirname, 'package.json');
+    const pkgPath = path.join(__dirname, '..', 'package.json');
     let version = 'v1.0';
     try {
       const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
@@ -930,7 +929,7 @@ function printAsciiWelcome() {
     } catch {}
 
     const cwd = process.cwd();
-    const fit = (s, n) => {
+    const fit = (s: string, n: number) => {
       const str = String(s);
       return str.length > n ? str.slice(0, n-1) + '…' : str.padEnd(n);
     };
@@ -949,7 +948,6 @@ function printAsciiWelcome() {
 +---------------------------------------------------------------------------------------------+`;
 
     process.stdout.write('\n' + box + '\n\n');
-    process.stdout.flush();
   } catch (e) {
     // Fallback: ignore banner errors
   }
@@ -1018,13 +1016,13 @@ async function main() {
     try {
       const apiKey = await getApiKey();
       const models = await fetchModels(apiKey);
-      selectedModel = (models.find(m => (m.id||m.slug||m.name) === DEFAULT_MODEL_ID)?.id) || (await selectModel(models));
+      selectedModel = (models.find((m: any) => (m.id||m.slug||m.name) === DEFAULT_MODEL_ID)?.id) || (await selectModel(models));
     } catch (e) {
       // If fetching free models fails, continue with default model
       selectedModel = DEFAULT_MODEL_ID;
     }
     await startChat(selectedModel);
-  } catch (e) {
+  } catch (e: any) {
     console.error('Fatal:', e?.message || e);
     process.exitCode = 1;
   }
@@ -1032,4 +1030,4 @@ async function main() {
 
 main();
 
-module.exports = { fetchModels, selectModel, startChat, setupToolAccess };
+export { fetchModels, selectModel, startChat, setupToolAccess };
