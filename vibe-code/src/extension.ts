@@ -287,9 +287,26 @@ class VibeView implements vscode.WebviewViewProvider {
         // Clear the message history in the extension
         this.messages = [];
         break;
+      case "openSettings":
+        void vscode.commands.executeCommand("workbench.action.openSettings", "vibe");
+        break;
       case "openExternal":
         if (typeof msg.url === "string") {
           void vscode.env.openExternal(vscode.Uri.parse(msg.url));
+        }
+        break;
+      case "setMaxContextFiles":
+        if (typeof msg.maxContextFiles === "number") {
+          const config = vscode.workspace.getConfiguration('vibe');
+          await config.update('maxContextFiles', msg.maxContextFiles, vscode.ConfigurationTarget.Global);
+          void vscode.window.showInformationMessage(`Max context files updated to ${msg.maxContextFiles}`);
+        }
+        break;
+      case "setAutoApprove":
+        if (typeof msg.autoApprove === "boolean") {
+          const config = vscode.workspace.getConfiguration('vibe');
+          await config.update('autoApproveUnsafeOps', msg.autoApprove, vscode.ConfigurationTarget.Global);
+          void vscode.window.showInformationMessage(`Auto-approve unsafe operations ${msg.autoApprove ? 'enabled' : 'disabled'}`);
         }
         break;
       default:
@@ -519,33 +536,26 @@ class VibeView implements vscode.WebviewViewProvider {
         border-bottom: 1px solid var(--vscode-panel-border);
       }
       .tab {
-        padding: 6px 12px;
+        padding: 6px;
         cursor: pointer;
         border-radius: 4px;
         font-weight: 500;
         transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
       }
-      .tab[data-tab="chat"] {
-        color: #87CEEB; /* Sky blue */
+      .tab:hover {
+        background: var(--vscode-toolbar-hoverBackground, var(--vscode-sideBarSectionHeader-border));
       }
-      .tab[data-tab="agent"] {
-        color: #90EE90; /* Light green */
+      .tab.active {
+        background: var(--vscode-button-background);
+        color: var(--vscode-button-foreground);
       }
-      .tab[data-tab="chat"]:not(.active):hover {
-        background: color-mix(in srgb, #87CEEB 20%, var(--vscode-toolbar-hoverBackground, var(--vscode-sideBarSectionHeader-border)) 80%);
-        color: #87CEEB;
-      }
-      .tab[data-tab="agent"]:not(.active):hover {
-        background: color-mix(in srgb, #90EE90 20%, var(--vscode-toolbar-hoverBackground, var(--vscode-sideBarSectionHeader-border)) 80%);
-        color: #90EE90;
-      }
-      .tab.active[data-tab="chat"] {
-        background: #87CEEB;
-        color: #FFFFFF;
-      }
-      .tab.active[data-tab="agent"] {
-        background: #90EE90;
-        color: #FFFFFF;
+      .tab-icon {
+        font-size: 16px;
       }
       .content {
         flex: 1;
@@ -567,6 +577,16 @@ class VibeView implements vscode.WebviewViewProvider {
         display: flex;
         flex-direction: column;
         min-height: 0;
+        position: relative; /* Ensure positioning context for welcome message */
+      }
+      .section-content {
+        display: none;
+        height: 100%;
+      }
+      .section-content.active {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
       }
       .messages {
         flex: 1;
@@ -703,15 +723,105 @@ class VibeView implements vscode.WebviewViewProvider {
         width: 100%;
       }
 
+      .modes-personas-models {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+      }
+
       .input-buttons {
         display: flex;
         gap: 4px;
       }
+      .input-hint {
+        margin-top: 4px;
+      }
+      .welcome-message {
+        position: absolute;
+        top: 40%; /* Moved up from 50% */
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: var(--vscode-input-placeholderForeground, #767676);
+        font-size: 18px; /* Increased size */
+        font-weight: 500; /* Slightly bolder */
+        pointer-events: none; /* Allow clicks to pass through to messages area */
+        text-align: center;
+        opacity: 0.7; /* Slightly more visible */
+        z-index: 0;
+      }
+      .messages {
+        z-index: 1; /* Ensure messages appear above the welcome message */
+        padding: 8px;
+        overflow-y: auto;
+        /* Custom scrollbar styling */
+        overflow-x: hidden; /* Hide horizontal scrollbar if not needed */
+      }
+
+      /* Custom scrollbar styling */
+      .messages::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      .messages::-webkit-scrollbar-track {
+        background: var(--vscode-scrollbar-shadow, #f0f0f0);
+        border-radius: 4px;
+      }
+
+      .messages::-webkit-scrollbar-thumb {
+        background: var(--vscode-scrollbarSlider-background, #c0c0c0);
+        border-radius: 4px;
+      }
+
+      .messages::-webkit-scrollbar-thumb:hover {
+        background: var(--vscode-scrollbarSlider-hoverBackground, #a0a0a0);
+      }
       .sidebar-section {
-        padding: 6px 8px;
+        padding: 12px;
         border-bottom: 1px solid var(--vscode-panel-border);
         min-height: 0;
         overflow-y: auto;
+      }
+      .settings-group {
+        margin-bottom: 16px;
+        padding: 8px;
+        border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+        border-radius: 4px;
+        background-color: var(--vscode-input-background, var(--vscode-sideBarSectionHeader-background));
+      }
+      .settings-group label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+      }
+      .settings-group input,
+      .settings-group select {
+        width: 100%;
+        padding: 6px;
+        margin-bottom: 6px;
+        background-color: var(--vscode-input-background);
+        color: var(--vscode-input-foreground);
+        border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+        border-radius: 2px;
+        box-sizing: border-box;
+      }
+      .settings-group button {
+        width: 100%;
+        padding: 6px;
+        background-color: var(--vscode-button-background, #007ACC);
+        color: var(--vscode-button-foreground, white);
+        border: 1px solid var(--vscode-button-border, transparent);
+        border-radius: 2px;
+        cursor: pointer;
+      }
+      .settings-group button:hover {
+        background-color: var(--vscode-button-hoverBackground, #0062A3);
+      }
+      .settings-intro {
+        text-align: center;
+        margin-bottom: 16px;
+        padding: 8px;
+        background-color: var(--vscode-sideBarSectionHeader-background);
+        border-radius: 4px;
       }
       .sidebar-section h3 {
         margin: 0 0 4px;
@@ -739,79 +849,178 @@ class VibeView implements vscode.WebviewViewProvider {
   </head>
   <body>
     <div class="root">
-      <header>
-        <div class="brand">
-          <span class="icon">✨</span>
-          <span>Vibe</span>
-        </div>
-        <div class="modes">
-          <select id="modeSelect">
-            ${modeOptions}
-          </select>
-        </div>
-        <div class="toolbar-right">
-          <select id="personaSelect">
-            ${personaOptions}
-          </select>
-          <select id="modelSelect">
-            ${modelOptions}
-          </select>
-          <button class="small" id="settingsBtn">Settings</button>
-        </div>
-      </header>
       <div class="main">
         <div class="tabs">
-          <div class="tab active" data-tab="chat">Chat</div>
-          <div class="tab" data-tab="agent">Agent</div>
+          <div class="tab active" data-tab="chat" title="Chat">
+            <span class="tab-icon">💬</span>
+          </div>
+          <div class="tab" data-tab="settings" title="Settings">
+            <span class="tab-icon">⚙️</span>
+          </div>
+          <div class="tab" data-tab="history" title="History">
+            <span class="tab-icon">🕒</span>
+          </div>
+          <div class="tab" data-tab="newchat" title="New Chat">
+            <span class="tab-icon">➕</span>
+          </div>
+          <div class="tab" data-tab="profile" title="Profile">
+            <span class="tab-icon">👤</span>
+          </div>
         </div>
         <div class="content">
           <div class="chat-column">
-            <div class="chat-content">
-              <div class="messages" id="messages"></div>
+            <!-- Chat content section -->
+            <div id="chat-content" class="section-content active">
+              <div class="chat-content">
+                <div class="messages" id="messages"></div>
+                <div id="welcome-message" class="welcome-message">
+                  What can I do for you?
+                </div>
+              </div>
+              <div class="input-row">
+                <textarea id="input" placeholder="Type your task here…"></textarea>
+                <div class="input-actions">
+                  <div class="input-controls">
+                    <div class="modes-personas-models">
+                      <select id="modeSelect" style="margin-right: 4px;">
+                        ${modeOptions}
+                      </select>
+                      <select id="personaSelect" style="margin-right: 4px;">
+                        ${personaOptions}
+                      </select>
+                      <select id="modelSelect">
+                        ${modelOptions}
+                      </select>
+                    </div>
+                    <div class="input-buttons">
+                      <button class="small" id="clearChatBtn">Clear</button>
+                      <button class="small" id="sendBtn">Send</button>
+                    </div>
+                  </div>
+                  <div class="input-hint">
+                    <span class="muted">Enter to send, Shift+Enter for newline</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="input-row">
-              <textarea id="input" placeholder="Ask Vibe…"></textarea>
-              <div class="input-actions">
-                <div class="input-controls">
-                  <span class="muted">Enter to send, Shift+Enter for newline</span>
-                  <div class="input-buttons">
-                    <button class="small" id="clearChatBtn">Clear</button>
-                    <button class="small" id="sendBtn">Send</button>
+
+            <!-- Settings content section -->
+            <div id="settings-content" class="section-content">
+              <div class="sidebar-section" style="flex: 1; overflow-y: auto;">
+                <h3>Vibe Settings</h3>
+                <div class="settings-intro">
+                  <p>Configure Vibe settings in VS Code Settings</p>
+                  <button id="vscodeSettingsBtn" style="margin-top: 8px; padding: 6px 12px; font-size: 11px;">Open Vibe Settings</button>
+                </div>
+
+                <div class="settings-group">
+                  <label for="providerSelect">Provider</label>
+                  <select id="providerSelect">
+                    <option value="openrouter">OpenRouter</option>
+                    <option value="megallm">MegaLLM</option>
+                  </select>
+                  <button id="saveProviderBtn">Save Provider</button>
+                </div>
+
+                <div class="settings-group">
+                  <label for="openRouterApiKeyInput">OpenRouter API Key</label>
+                  <input type="password" id="openRouterApiKeyInput" placeholder="Enter OpenRouter API key">
+                  <button id="saveOpenRouterKeyBtn">Save OpenRouter Key</button>
+                </div>
+
+                <div class="settings-group">
+                  <label for="megaLlmApiKeyInput">MegaLLM API Key</label>
+                  <input type="password" id="megaLlmApiKeyInput" placeholder="Enter MegaLLM API key">
+                  <button id="saveMegaLlmKeyBtn">Save MegaLLM Key</button>
+                </div>
+
+                <div class="settings-group">
+                  <label for="modelSelect">Default Model</label>
+                  <select id="modelSelect">
+                    ${modelOptions}
+                  </select>
+                  <button id="saveModelBtn">Save Model</button>
+                </div>
+
+                <div class="settings-group">
+                  <label for="maxContextFilesInput">Max Context Files</label>
+                  <input type="number" id="maxContextFilesInput" placeholder="Max number of files">
+                  <button id="saveMaxContextFilesBtn">Save Max Context Files</button>
+                </div>
+
+                <div class="settings-group">
+                  <label for="autoApproveCheckbox">
+                    <input type="checkbox" id="autoApproveCheckbox"> Auto-approve unsafe operations
+                  </label>
+                  <button id="saveAutoApproveBtn">Save Auto-approve Setting</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- History content section -->
+            <div id="history-content" class="section-content">
+              <div class="sidebar-section" style="flex: 1; overflow-y: auto;">
+                <h3>Chat History</h3>
+                <div id="history-list" style="margin-top: 8px;">
+                  <div class="muted" style="padding: 8px;">No chat history available yet.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- New Chat content section -->
+            <div id="newchat-content" class="section-content">
+              <div class="sidebar-section" style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                  <div style="font-size: 48px; margin-bottom: 10px;">💬</div>
+                  <h3 style="margin: 0 0 10px 0;">Start a New Chat</h3>
+                  <p class="muted">Begin a new conversation with Vibe</p>
+                </div>
+                <button id="startNewChatBtn" style="padding: 10px 20px; font-size: 14px;">Start New Chat</button>
+              </div>
+            </div>
+
+            <!-- Profile content section -->
+            <div id="profile-content" class="section-content">
+              <div class="sidebar-section" style="flex: 1; overflow-y: auto;">
+                <h3>Profile</h3>
+                <div style="padding: 8px 0;">
+                  <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                    <div style="font-size: 40px; margin-right: 15px;">👤</div>
+                    <div>
+                      <h4 style="margin: 0;">Vibe User</h4>
+                      <div class="muted">Active since today</div>
+                    </div>
+                  </div>
+                  <div style="margin-bottom: 12px;">
+                    <h5 style="margin: 0 0 8px 0;">Usage Stats</h5>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                      <div style="border: 1px solid var(--vscode-panel-border); padding: 8px; border-radius: 4px;">
+                        <div class="muted">Chats</div>
+                        <div style="font-weight: bold;">0</div>
+                      </div>
+                      <div style="border: 1px solid var(--vscode-panel-border); padding: 8px; border-radius: 4px;">
+                        <div class="muted">Messages</div>
+                        <div style="font-weight: bold;">0</div>
+                      </div>
+                      <div style="border: 1px solid var(--vscode-panel-border); padding: 8px; border-radius: 4px;">
+                        <div class="muted">Tokens</div>
+                        <div style="font-weight: bold;">0</div>
+                      </div>
+                      <div style="border: 1px solid var(--vscode-panel-border); padding: 8px; border-radius: 4px;">
+                        <div class="muted">Models</div>
+                        <div style="font-weight: bold;">0</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="margin-top: 20px;">
+                    <h5 style="margin: 0 0 8px 0;">Preferences</h5>
+                    <div class="muted">Customize your Vibe experience</div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
           <div class="sidebar">
-            <div class="sidebar-section">
-              <h3>Mode</h3>
-              <div id="modeSummary" class="muted"></div>
-            </div>
-            <div class="sidebar-section">
-              <h3>Personas</h3>
-              <div class="pill-row" id="personaPills"></div>
-            </div>
-            <div class="sidebar-section">
-              <h3>Checkpoints</h3>
-              <div id="checkpoints" class="muted">Use Agent mode to create checkpoints.</div>
-            </div>
-            <div class="sidebar-section">
-              <h3>Provider</h3>
-              <select id="providerSelect" style="width: 100%; padding: 4px; margin-top: 4px;">
-                <option value="openrouter">OpenRouter</option>
-                <option value="megallm">MegaLLM</option>
-              </select>
-            </div>
-            <div class="sidebar-section">
-              <h3>OpenRouter API Key</h3>
-              <input type="password" id="openRouterApiKeyInput" placeholder="Enter OpenRouter API key" style="width: 100%; padding: 4px; margin-top: 4px;">
-              <button id="saveOpenRouterKeyBtn" style="margin-top: 4px; width: 100%;">Save OpenRouter Key</button>
-            </div>
-            <div class="sidebar-section">
-              <h3>MegaLLM API Key</h3>
-              <input type="password" id="megaLlmApiKeyInput" placeholder="Enter MegaLLM API key" style="width: 100%; padding: 4px; margin-top: 4px;">
-              <button id="saveMegaLlmKeyBtn" style="margin-top: 4px; width: 100%;">Save MegaLLM Key</button>
-            </div>
           </div>
         </div>
       </div>
@@ -883,6 +1092,12 @@ class VibeView implements vscode.WebviewViewProvider {
 
         container.appendChild(div);
 
+        // Hide welcome message when messages exist
+        const welcomeMessage = document.getElementById("welcome-message");
+        if (welcomeMessage) {
+          welcomeMessage.style.display = "none";
+        }
+
         // Scroll to bottom if auto-scroll is enabled
         if (shouldAutoScroll) {
           scrollToBottom();
@@ -917,7 +1132,18 @@ class VibeView implements vscode.WebviewViewProvider {
         const chatColumn = document.querySelector(".chat-column");
         if (chatColumn) {
           chatColumn.className = chatColumn.className.replace(/(chat|agent)\s*/g, '');
-          chatColumn.classList.add(currentTab);
+          if (currentTab === "chat") { // Only chat remains
+            chatColumn.classList.add(currentTab);
+          }
+        }
+
+        // Set initial active content section
+        document.querySelectorAll(".section-content").forEach(section => {
+          section.classList.remove("active");
+        });
+        const initialSection = document.getElementById(currentTab + "-content");
+        if (initialSection) {
+          initialSection.classList.add("active");
         }
       }
 
@@ -990,6 +1216,7 @@ class VibeView implements vscode.WebviewViewProvider {
             if (msg.personas) {
               setPersonas(msg.personas);
               const select = document.getElementById("personaSelect");
+              const agentSelect = document.getElementById("agentPersonaSelect");
               if (select && msg.currentPersonaId) {
                 updatingPersonaSelect = true;
                 select.value = msg.currentPersonaId;
@@ -1021,12 +1248,20 @@ class VibeView implements vscode.WebviewViewProvider {
               // Set the API key inputs based on provider
               const openRouterInput = document.getElementById("openRouterApiKeyInput");
               const megaLlmInput = document.getElementById("megaLlmApiKeyInput");
+              const maxContextFilesInput = document.getElementById("maxContextFilesInput");
+              const autoApproveCheckbox = document.getElementById("autoApproveCheckbox");
 
               if (openRouterInput) {
                 openRouterInput.value = msg.settings.openrouterApiKey;
               }
               if (megaLlmInput) {
                 megaLlmInput.value = msg.settings.megallmApiKey;
+              }
+              if (maxContextFilesInput) {
+                maxContextFilesInput.value = msg.settings.maxContextFiles;
+              }
+              if (autoApproveCheckbox) {
+                autoApproveCheckbox.checked = msg.settings.autoApproveUnsafeOps;
               }
             }
             break;
@@ -1067,19 +1302,42 @@ class VibeView implements vscode.WebviewViewProvider {
         selectMode(id);
       });
 
+
+      function switchTab(tabName) {
+        // Update tab selection
+        document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+        const activeTab = document.querySelector('.tab[data-tab="' + tabName + '"]');
+        if (activeTab) {
+          activeTab.classList.add("active");
+        }
+
+        // Update content section visibility
+        document.querySelectorAll(".section-content").forEach(section => {
+          section.classList.remove("active");
+        });
+        const activeSection = document.getElementById(tabName + "-content");
+        if (activeSection) {
+          activeSection.classList.add("active");
+        }
+
+        // Update current tab and agent mode
+        currentTab = tabName;
+        isAgent = tabName === "agent"; // Keep for compatibility but agent tab is removed
+
+        // Apply different background classes based on current tab
+        const chatColumn = document.querySelector(".chat-column");
+        if (chatColumn) {
+          chatColumn.className = chatColumn.className.replace(/(chat|agent)\s*/g, '');
+          if (tabName === "chat") { // Only chat remains
+            chatColumn.classList.add(tabName);
+          }
+        }
+      }
+
       document.querySelectorAll(".tab").forEach(tab => {
         tab.addEventListener("click", () => {
-          document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-          tab.classList.add("active");
-          currentTab = tab.dataset.tab;
-          isAgent = currentTab === "agent";
-
-          // Apply different background classes based on current tab
-          const chatColumn = document.querySelector(".chat-column");
-          if (chatColumn) {
-            chatColumn.className = chatColumn.className.replace(/(chat|agent)\s*/g, '');
-            chatColumn.classList.add(currentTab);
-          }
+          const tabName = tab.dataset.tab;
+          switchTab(tabName);
         });
       });
 
@@ -1106,6 +1364,12 @@ class VibeView implements vscode.WebviewViewProvider {
           thinkingElementId = null;
           // Clear the message history in the extension
           vscode.postMessage({ type: "clearChat" });
+
+          // Show welcome message after clearing
+          const welcomeMessage = document.getElementById("welcome-message");
+          if (welcomeMessage) {
+            welcomeMessage.style.display = "block";
+          }
         }
       });
 
@@ -1128,11 +1392,15 @@ class VibeView implements vscode.WebviewViewProvider {
         }, 100); // Slight delay to allow UI to update
       });
 
-      document.getElementById("settingsBtn").addEventListener("click", () => {
-        vscode.postMessage({ type: "openSettings" });
+      // Agent persona select
+      document.getElementById("personaSelect").addEventListener("change", (e) => {
+        if (updatingPersonaSelect) return; // Prevent recursive updates
+        const id = e.target.value;
+        vscode.postMessage({ type: "setPersona", personaId: id });
       });
 
-      document.getElementById("personaSelect").addEventListener("change", (e) => {
+      // Agent persona select
+      document.getElementById("agentPersonaSelect").addEventListener("change", (e) => {
         if (updatingPersonaSelect) return; // Prevent recursive updates
         const id = e.target.value;
         vscode.postMessage({ type: "setPersona", personaId: id });
@@ -1143,6 +1411,7 @@ class VibeView implements vscode.WebviewViewProvider {
         const id = e.target.value;
         vscode.postMessage({ type: "setModel", modelId: id });
       });
+
 
       // Provider selection handler
       document.getElementById("providerSelect").addEventListener("change", (e) => {
@@ -1205,6 +1474,114 @@ class VibeView implements vscode.WebviewViewProvider {
           }
         }
       });
+
+      // Max context files input handler
+      const maxContextFilesInput = document.getElementById("maxContextFilesInput");
+      if (maxContextFilesInput) {
+        maxContextFilesInput.addEventListener("change", (e) => {
+          const value = parseInt(e.target.value);
+          if (!isNaN(value) && value > 0) {
+            // This would need to be sent to the extension to update the setting
+            // For now, we'll just show a message to indicate the functionality
+            vscode.postMessage({
+              type: "setMaxContextFiles",
+              maxContextFiles: value
+            });
+          }
+        });
+      }
+
+      // Auto approve checkbox handler
+      const autoApproveCheckbox = document.getElementById("autoApproveCheckbox");
+      if (autoApproveCheckbox) {
+        autoApproveCheckbox.addEventListener("change", (e) => {
+          vscode.postMessage({
+            type: "setAutoApprove",
+            autoApprove: e.target.checked
+          });
+        });
+      }
+
+      // Start new chat button handler
+      const startNewChatBtn = document.getElementById("startNewChatBtn");
+      if (startNewChatBtn) {
+        startNewChatBtn.addEventListener("click", () => {
+          // Clear current messages and start a new chat
+          const messagesContainer = document.getElementById("messages");
+          if (messagesContainer) {
+            messagesContainer.innerHTML = "";
+          }
+          // Switch to chat tab
+          switchTab("chat");
+        });
+      }
+
+      // VS Code Settings button handler
+      const vscodeSettingsBtn = document.getElementById("vscodeSettingsBtn");
+      if (vscodeSettingsBtn) {
+        vscodeSettingsBtn.addEventListener("click", () => {
+          vscode.postMessage({ type: "openSettings" });
+        });
+      }
+
+      // Provider save button handler
+      const saveProviderBtn = document.getElementById("saveProviderBtn");
+      if (saveProviderBtn) {
+        saveProviderBtn.addEventListener("click", () => {
+          const providerSelect = document.getElementById("providerSelect");
+          if (providerSelect) {
+            const provider = providerSelect.value;
+            if (provider === "openrouter" || provider === "megallm") {
+              vscode.postMessage({ type: "setProvider", provider });
+            }
+          }
+        });
+      }
+
+      // Model save button handler
+      const saveModelBtn = document.getElementById("saveModelBtn");
+      if (saveModelBtn) {
+        saveModelBtn.addEventListener("click", () => {
+          const modelSelect = document.getElementById("modelSelect");
+          if (modelSelect) {
+            const modelId = modelSelect.value;
+            if (modelId) {
+              vscode.postMessage({ type: "setModel", modelId });
+            }
+          }
+        });
+      }
+
+      // Max context files save button handler
+      const saveMaxContextFilesBtn = document.getElementById("saveMaxContextFilesBtn");
+      if (saveMaxContextFilesBtn) {
+        saveMaxContextFilesBtn.addEventListener("click", () => {
+          const maxContextFilesInput = document.getElementById("maxContextFilesInput");
+          if (maxContextFilesInput) {
+            const value = parseInt(maxContextFilesInput.value);
+            if (!isNaN(value) && value > 0) {
+              vscode.postMessage({
+                type: "setMaxContextFiles",
+                maxContextFiles: value
+              });
+            }
+          }
+        });
+      }
+
+      // Auto approve save button handler
+      const saveAutoApproveBtn = document.getElementById("saveAutoApproveBtn");
+      if (saveAutoApproveBtn) {
+        saveAutoApproveBtn.addEventListener("click", () => {
+          const autoApproveCheckbox = document.getElementById("autoApproveCheckbox");
+          if (autoApproveCheckbox) {
+            vscode.postMessage({
+              type: "setAutoApprove",
+              autoApprove: autoApproveCheckbox.checked
+            });
+          }
+        });
+      }
 
       // Add scroll event listener to detect manual scrolling
       const messagesContainer = document.getElementById("messages");
