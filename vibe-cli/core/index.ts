@@ -240,6 +240,21 @@ const dynamicFetch: typeof fetch = (...args: Parameters<typeof fetch>) => {
   return require('node-fetch')(...(args as [RequestInfo, RequestInit?]));
 };
 
+// Enhanced: Retry logic with exponential backoff
+async function fetchWithRetry(url: string, options: any, maxRetries = 3): Promise<Response> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const response = await dynamicFetch(url, options);
+      if (response.ok || i === maxRetries - 1) return response;
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+    } catch (err) {
+      if (i === maxRetries - 1) throw err;
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+
 export function detectTaskType(prompt: string, command: string | null = null): string {
   const text = (prompt || '').toLowerCase();
 
@@ -311,6 +326,7 @@ export async function chatCompletion({
   thinking,
   taskType,
   prompt,
+  stream = false,
 }: {
   apiKey?: string;
   model?: string;
@@ -320,6 +336,7 @@ export async function chatCompletion({
   thinking?: boolean;
   taskType?: string;
   prompt?: string;
+  stream?: boolean;
 }): Promise<{ model: string; message: Record<string, unknown>; data: any }> {
   try {
     const key = apiKey || (await getApiKey());
@@ -348,6 +365,7 @@ export async function chatCompletion({
           messages,
           temperature: temperature ?? 0.2,
           max_tokens: maxTokens,
+          stream,
         };
         if (thinking !== undefined) {
           body.reasoning = { effort: thinking ? 'medium' : 'low' };
@@ -369,7 +387,7 @@ export async function chatCompletion({
           headers['X-Title'] = 'Vibe CLI';
         }
 
-        const res = await dynamicFetch(`${baseUrl}/chat/completions`, {
+        const res = await fetchWithRetry(`${baseUrl}/chat/completions`, {
           method: 'POST',
           headers,
           body: JSON.stringify(body),

@@ -3,6 +3,27 @@ import * as vscode from "vscode";
 import * as fs from 'fs';
 import * as path from 'path';
 
+// Command History Manager
+class CommandHistory {
+  private history: Array<{ command: string; timestamp: number; mode: string }> = [];
+  private maxSize = 50;
+
+  add(command: string, mode: string) {
+    this.history.unshift({ command, timestamp: Date.now(), mode });
+    if (this.history.length > this.maxSize) this.history.pop();
+  }
+
+  get(limit = 10) {
+    return this.history.slice(0, limit);
+  }
+
+  clear() {
+    this.history = [];
+  }
+}
+
+const commandHistory = new CommandHistory();
+
 type VibeModeId =
   | "architect"
   | "code"

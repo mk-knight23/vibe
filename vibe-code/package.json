@@ -2,7 +2,7 @@
   "name": "vibe-vscode",
   "displayName": "Vibe VS Code",
   "description": "VS Code extension for Vibe: a modern AI coding assistant with multiple tabs (Chat, Settings, History, New Chat, Profile), enhanced UI, and OpenRouter integration.",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "publisher": "mktech",
   "repository": {
     "type": "git",
@@ -99,8 +99,42 @@
         "command": "vibe.switchPrevMode",
         "title": "Vibe: Previous Mode (⌘+Shift+.)",
         "category": "Vibe"
+      },
+      {
+        "command": "vibe.explainCode",
+        "title": "Vibe: Explain Selected Code",
+        "category": "Vibe"
+      },
+      {
+        "command": "vibe.refactorCode",
+        "title": "Vibe: Refactor Selected Code",
+        "category": "Vibe"
+      },
+      {
+        "command": "vibe.generateTests",
+        "title": "Vibe: Generate Tests for Selection",
+        "category": "Vibe"
       }
     ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "vibe.explainCode",
+          "when": "editorHasSelection",
+          "group": "vibe@1"
+        },
+        {
+          "command": "vibe.refactorCode",
+          "when": "editorHasSelection",
+          "group": "vibe@2"
+        },
+        {
+          "command": "vibe.generateTests",
+          "when": "editorHasSelection",
+          "group": "vibe@3"
+        }
+      ]
+    },
     "configuration": {
       "type": "object",
       "title": "Vibe",

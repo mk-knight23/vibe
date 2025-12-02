@@ -4,6 +4,7 @@ import { Toaster } from "../components/ui/toaster";
 import Header from '../components/header';
 import Footer from '../components/footer';
 import { ThemeProvider } from '../components/theme-provider';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 export const metadata: Metadata = {
   title: 'VIBE',
@@ -38,9 +39,11 @@ export default function RootLayout({
           </div>
           <div className="flex flex-col min-h-screen">
             <Header />
-            <main className="flex-grow pt-6 sm:pt-10">
-              {children}
-            </main>
+            <ErrorBoundary>
+              <main className="flex-grow pt-6 sm:pt-10">
+                {children}
+              </main>
+            </ErrorBoundary>
             <Footer />
           </div>
           <Toaster />
