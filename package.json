@@ -22,7 +22,7 @@
     "multi-package"
   ],
   "dependencies": {
-    "vibe-ai-cli": "^2.1.0"
+    "vibe-ai-cli": "^2.1.5"
   },
   "devDependencies": {
     "vibe-cli": "^0.14.54"
