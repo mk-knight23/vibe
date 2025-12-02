@@ -1,0 +1,44 @@
+name: Publish CLI to NPM
+
+on:
+  push:
+    tags:
+      - 'cli-v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+      
+      - name: Install dependencies
+        run: cd vibe-cli && npm ci
+      
+      - name: Build
+        run: cd vibe-cli && npm run build
+      
+      - name: Publish to NPM
+        run: cd vibe-cli && npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Vibe CLI ${{ github.ref_name }}
+          body: |
+            ## Vibe CLI Release
+            
+            Install: `npm install -g vibe-ai-cli`
+            
+            See [CHANGELOG](https://github.com/mk-knight23/vibe/blob/main/vibe-cli/README.md) for details.
+          draft: false
+          prerelease: false
