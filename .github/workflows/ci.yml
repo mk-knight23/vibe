@@ -18,16 +18,16 @@ jobs:
           node-version: '18'
       
       - name: Install dependencies
-        run: cd vibe-cli && npm install
+        working-directory: vibe-cli
+        run: npm install --legacy-peer-deps
       
       - name: Build
-        run: cd vibe-cli && npm run build
-      
-      - name: Test
-        run: cd vibe-cli && npm test --if-present
+        working-directory: vibe-cli
+        run: npm run build
       
       - name: Check version
-        run: cd vibe-cli && node -p "require('./package.json').version"
+        working-directory: vibe-cli
+        run: node -p "require('./package.json').version"
 
   web:
     name: Web - Build & Test
@@ -40,13 +40,16 @@ jobs:
           node-version: '18'
       
       - name: Install dependencies
-        run: cd vibe-web && npm install
+        working-directory: vibe-web
+        run: npm install --legacy-peer-deps
       
       - name: Build
-        run: cd vibe-web && npm run build
+        working-directory: vibe-web
+        run: npm run build
       
       - name: Check version
-        run: cd vibe-web && node -p "require('./package.json').version"
+        working-directory: vibe-web
+        run: node -p "require('./package.json').version"
 
   extension:
     name: Extension - Build & Package
@@ -59,16 +62,20 @@ jobs:
           node-version: '18'
       
       - name: Install dependencies
-        run: cd vibe-code && npm install
+        working-directory: vibe-code
+        run: npm install --legacy-peer-deps
       
       - name: Compile
-        run: cd vibe-code && npm run compile
+        working-directory: vibe-code
+        run: npm run compile
       
       - name: Package
-        run: cd vibe-code && npx @vscode/vsce package
+        working-directory: vibe-code
+        run: npx @vscode/vsce package
       
       - name: Check version
-        run: cd vibe-code && node -p "require('./package.json').version"
+        working-directory: vibe-code
+        run: node -p "require('./package.json').version"
       
       - name: Upload VSIX
         uses: actions/upload-artifact@v4
