@@ -48,26 +48,47 @@ export async function POST(request: NextRequest) {
     let apiUrl: string;
     let apiHeaders: Record<string, string>;
 
-    if (provider === 'openrouter') {
-      apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
-      apiHeaders = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://vibe-ai.vercel.app',
-        'X-Title': 'Vibe Web Chat',
-      };
-    } else if (provider === 'megallm') {
-      apiUrl = 'https://ai.megallm.io/v1/chat/completions';
-      apiHeaders = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'User-Agent': 'Vibe Web Chat',
-      };
-    } else {
-      return NextResponse.json(
-        { error: 'Invalid provider. Use openrouter or megallm.' },
-        { status: 400 }
-      );
+    switch (provider) {
+      case 'openrouter':
+        apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
+        apiHeaders = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+          'HTTP-Referer': 'https://vibe-ai.vercel.app',
+          'X-Title': 'Vibe Web Chat',
+        };
+        break;
+      
+      case 'megallm':
+        apiUrl = 'https://ai.megallm.io/v1/chat/completions';
+        apiHeaders = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+          'User-Agent': 'Vibe Web Chat',
+        };
+        break;
+      
+      case 'agentrouter':
+        apiUrl = 'https://api.agentrouter.com/v1/chat/completions';
+        apiHeaders = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        };
+        break;
+      
+      case 'routeway':
+        apiUrl = 'https://api.routeway.ai/v1/chat/completions';
+        apiHeaders = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        };
+        break;
+      
+      default:
+        return NextResponse.json(
+          { error: 'Invalid provider' },
+          { status: 400 }
+        );
     }
 
     const requestBody = {

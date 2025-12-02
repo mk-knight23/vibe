@@ -1,6 +1,6 @@
 {
   "name": "vibe-web",
-  "version": "1.4.0",
+  "version": "2.0.0",
   "private": true,
   "description": "Vibe Web – marketing/onboarding site and documentation surface (Next.js + Tailwind).",
   "author": "mk-knight23 <noreply@users.noreply.github.com>",
@@ -23,6 +23,7 @@
     "ai-assistant"
   ],
   "scripts": {
+    "predev": "node scripts/dev-clean.js",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

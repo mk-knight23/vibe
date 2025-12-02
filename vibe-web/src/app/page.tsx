@@ -1,187 +1,257 @@
 import Link from "next/link";
-import AnimatedHero from "../components/animated-hero";
-import TestimonialsSection from "../components/marketing/testimonials-section";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Sparkles, Terminal, Code2, Layers, Download, MessageSquare } from "lucide-react";
 
-/**
- * Home (Landing Page)
- * Simplified into a hub now that sections have dedicated pages.
- * Provides quick navigation cards instead of inlined full content.
- */
-const hubLinks = [
+const tools = [
   {
-    href: "/installation",
-    title: "Install",
-    description: "Curl, npm, Windows binary methods for CLI & VS Code extension."
+    name: "Vibe CLI",
+    version: "v4.0",
+    description: "AI-powered terminal assistant with multi-provider support",
+    features: [
+      "🌐 4 AI providers with 40+ models",
+      "📁 Auto file creation from AI responses",
+      "🎯 Smart fallback system",
+      "⚡ Zero configuration required"
+    ],
+    gradient: "from-blue-500 to-cyan-500",
+    color: "text-blue-500",
+    install: "npm install -g vibe-ai-cli"
   },
   {
-    href: "/quick-start",
-    title: "Quick Start",
-    description: "Onboarding steps & progress tracker for both tools."
-  },
-  {
-    href: "/commands",
-    title: "Commands",
-    description: "Terminal commands for CLI and VS Code commands."
-  },
-  {
-    href: "/features",
-    title: "Features",
-    description: "Core features for both CLI and VS Code extension."
-  },
-  {
-    href: "/pricing",
-    title: "Pricing",
-    description: "Free usage model + future tiers."
-  },
-  {
-    href: "/docs",
-    title: "Docs",
-    description: "Comprehensive guide for both CLI and extension."
-  },
-  {
-    href: "/chat",
-    title: "AI Chat",
-    description: "Interactive chat with OpenRouter & MegaLLM."
-  },
-  {
-    href: "/faq",
-    title: "FAQ",
-    description: "Common questions & security stance."
-  },
+    name: "Vibe VS Code",
+    version: "v4.0",
+    description: "Independent AI assistant for Visual Studio Code",
+    features: [
+      "🔒 Works standalone, no CLI needed",
+      "📁 Direct file operations",
+      "🤖 6 AI modes for different tasks",
+      "🎨 5 beautiful visual themes"
+    ],
+    gradient: "from-purple-500 to-pink-500",
+    color: "text-purple-500",
+    install: "Install from VS Code Marketplace"
+  }
 ];
 
-// Tool highlights for both CLI and VS Code extension
-const toolHighlights = [
-  {
-    title: "Vibe CLI",
-    description: "Terminal-centric AI coding assistant",
-    features: [
-      "Advanced chat, code generation, refactoring",
-      "Debugging, testing, git automation",
-      "Autonomous agent capabilities",
-      "Multi-model support (OpenRouter, etc.)"
-    ],
-    color: "from-blue-500 to-cyan-500"
-  },
-  {
-    title: "Vibe VS Code",
-    description: "In-editor AI assistance for Visual Studio Code",
-    features: [
-      "Multiple AI modes (Architect, Code, Debug, etc.)",
-      "Multi-provider support (OpenRouter, MegaLLM)",
-      "Copyable messages, clear chat functionality",
-      "Keyboard shortcuts & mode switching"
-    ],
-    color: "from-purple-500 to-pink-500"
-  }
+const providers = [
+  { name: "OpenRouter", models: 6, maxContext: "1M", color: "blue" },
+  { name: "MegaLLM", models: 12, maxContext: "200k", color: "purple" },
+  { name: "AgentRouter", models: 7, maxContext: "200k", color: "pink" },
+  { name: "Routeway", models: 6, maxContext: "200k", color: "cyan" }
+];
+
+const features = [
+  { icon: "🌐", title: "Multi-Provider", desc: "4 providers with automatic fallback" },
+  { icon: "📁", title: "Auto Files", desc: "AI creates files automatically" },
+  { icon: "⚡", title: "Zero Config", desc: "Works instantly, no setup" },
+  { icon: "🎯", title: "Smart Fallback", desc: "Never fails, always works" },
+  { icon: "🤖", title: "40+ Models", desc: "Free access to diverse AI" },
+  { icon: "🔒", title: "Privacy First", desc: "No data retention" }
+];
+
+const quickLinks = [
+  { href: "/installation", title: "Installation", desc: "Get started in 2 minutes", icon: "📦" },
+  { href: "/features", title: "Features", desc: "Explore capabilities", icon: "✨" },
+  { href: "/docs", title: "Documentation", desc: "Complete guides", icon: "📚" },
+  { href: "/chat", title: "AI Chat", desc: "Try it in browser", icon: "💬" },
+  { href: "/commands", title: "Commands", desc: "CLI & VS Code", icon: "⌨️" },
+  { href: "/faq", title: "FAQ", desc: "Common questions", icon: "❓" }
 ];
 
 export default function Home() {
   return (
-    <div className="mx-auto max-w-6xl px-5 pt-12 md:pt-16 space-y-28">
-      <div className="text-center mb-16">
-        <h1 className="font-headline font-semibold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary text-[3rem] md:text-[4rem]">
-          VIBE
-        </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-xl leading-relaxed text-muted-foreground">
-          Your Free AI Coding CLI and VS Code Extension
-        </p>
-      </div>
-
-      {/* Tool Highlights Section */}
-      <section className="relative">
-        <div className="mx-auto max-w-4xl text-center mb-16">
-          <h2 className="font-headline font-semibold tracking-tight text-[2.2rem] md:text-[2.8rem] mb-4" style={{
-            background: 'linear-gradient(to right, hsl(var(--primary)), hsl(var(--accent)))',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            color: 'transparent',
-            display: 'block'
-          }}>
-            Two Powerful Tools, One Ecosystem
-          </h2>
-          <p className="text-lg leading-relaxed text-muted-foreground">
-            Choose the interface that fits your workflow - terminal for CLI power users or VS Code for in-editor assistance
+    <div className="mx-auto max-w-6xl px-5 pt-8 md:pt-12 space-y-20">
+      {/* Hero */}
+      <div className="text-center space-y-8 relative">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20">
+          <Sparkles className="h-4 w-4 text-blue-500" />
+          <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+            v4.0 - Multi-Provider AI Platform
+          </span>
+        </div>
+        
+        <div className="space-y-4">
+          <h1 className="font-bold tracking-tight text-[4rem] md:text-[6rem] leading-none text-blue-600 dark:text-blue-400">
+            VIBE
+          </h1>
+          <p className="text-3xl md:text-4xl font-bold text-foreground">
+            AI-Powered Development
+            <span className="block text-purple-500">
+              Made Simple
+            </span>
           </p>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-2">
-          {toolHighlights.map((tool, index) => (
-            <div
-              key={tool.title}
-              className="group relative rounded-xl border border-border/50 bg-card/60 p-6 backdrop-blur-sm glow-border ambient ease-smooth hover:-translate-y-1 hover:border-accent/50"
-            >
-              <h3 className={`text-xl font-bold bg-gradient-to-r ${tool.color} bg-clip-text text-transparent mb-2`}>
-                {tool.title}
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">{tool.description}</p>
-              <ul className="space-y-2">
-                {tool.features.map((feature, idx) => (
-                  <li key={idx} className="text-sm flex items-start">
-                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent mt-1.5 mr-2 flex-shrink-0"></span>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </div>
+        <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
+          <Badge variant="secondary" className="px-3 py-1">
+            <Terminal className="h-3 w-3 mr-1.5" />
+            CLI v4.0
+          </Badge>
+          <Badge variant="secondary" className="px-3 py-1">
+            <Code2 className="h-3 w-3 mr-1.5" />
+            VS Code v4.0
+          </Badge>
+          <Badge variant="secondary" className="px-3 py-1">
+            <Layers className="h-3 w-3 mr-1.5" />
+            4 Providers
+          </Badge>
+          <Badge variant="secondary" className="px-3 py-1">
+            <Sparkles className="h-3 w-3 mr-1.5" />
+            40+ Free Models
+          </Badge>
+        </div>
+
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          Build faster with AI assistance in your terminal and editor. 
+          <span className="text-foreground font-medium"> Free forever.</span>
+        </p>
+
+        <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+          <Link href="/installation">
+            <Button size="lg" className="text-base bg-gradient-to-r from-blue-500 to-cyan-500 hover:opacity-90 shadow-lg">
+              <Download className="h-4 w-4 mr-2" />
+              Get Started Free
+            </Button>
+          </Link>
+          <Link href="/chat">
+            <Button size="lg" variant="outline" className="text-base">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Try AI Chat
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Tools */}
+      <section className="space-y-8">
+        <div className="text-center space-y-3">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+            Two Powerful Tools
+          </h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Choose your interface - terminal or VS Code
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          {tools.map((tool) => (
+            <Card key={tool.name} className="group hover:-translate-y-2 transition-all duration-300 hover:shadow-xl">
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className={`text-2xl font-bold ${tool.color}`}>
+                    {tool.name}
+                  </h3>
+                  <Badge variant="secondary">{tool.version}</Badge>
+                </div>
+                <p className="text-muted-foreground">{tool.description}</p>
+                <ul className="space-y-2">
+                  {tool.features.map((feature, idx) => (
+                    <li key={idx} className="text-sm">{feature}</li>
+                  ))}
+                </ul>
+                <div className="pt-2">
+                  <code className="text-xs bg-muted px-3 py-1.5 rounded block">{tool.install}</code>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </section>
 
-      {/* Chat Feature Callout */}
-      <section className="relative">
-        <div className="mx-auto max-w-4xl text-center mb-16">
-          <div className="rounded-xl border border-border/50 bg-gradient-to-r from-primary/10 to-accent/10 p-8 backdrop-blur-sm glow-border ambient">
-            <h3 className="text-2xl font-bold text-foreground mb-3">Try Our Interactive AI Chat</h3>
-            <p className="text-lg text-muted-foreground mb-6">
-              Experience the power of AI directly in your browser with support for both OpenRouter and MegaLLM models
-            </p>
-            <Link href="/chat" className="inline-block">
-              <div className="px-6 py-3 bg-gradient-to-r from-primary to-accent text-white font-medium rounded-lg hover:opacity-90 transition-opacity">
-                Open AI Chat
-              </div>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Navigation Hub */}
-      <section className="relative">
-        <div className="mx-auto max-w-3xl text-center mb-12">
-          <h2 className="font-headline font-semibold tracking-tight text-[2.4rem] md:text-[3rem]" style={{
-            background: 'linear-gradient(to right, hsl(var(--primary)), hsl(var(--accent)))',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            color: 'transparent',
-            display: 'block'
-          }}>
-            Explore VIBE
+      {/* Providers */}
+      <section className="space-y-8">
+        <div className="text-center space-y-3">
+          <h2 className="text-3xl md:text-4xl font-bold text-cyan-600 dark:text-cyan-400">
+            Multi-Provider Architecture
           </h2>
-          <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
-            Navigate focused pages for installation, onboarding, command reference, features, documentation, and support.
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            40+ free AI models with automatic fallback
           </p>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {hubLinks.map((link) => (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {providers.map((provider) => (
+            <Card key={provider.name} className="hover:scale-105 transition-transform duration-300">
+              <CardContent className="p-6 text-center space-y-2">
+                <h3 className="font-bold">{provider.name}</h3>
+                <div className="text-3xl font-bold text-primary">{provider.models}</div>
+                <div className="text-xs text-muted-foreground">models</div>
+                <Badge variant="outline" className="text-xs">{provider.maxContext}</Badge>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="space-y-8">
+        <div className="text-center space-y-3">
+          <h2 className="text-3xl md:text-4xl font-bold text-green-600 dark:text-green-400">
+            What's New in v4.0
+          </h2>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-4">
+          {features.map((feature) => (
+            <Card key={feature.title} className="hover:shadow-lg transition-shadow duration-300">
+              <CardContent className="p-6 text-center space-y-2">
+                <div className="text-4xl">{feature.icon}</div>
+                <h3 className="font-bold">{feature.title}</h3>
+                <p className="text-sm text-muted-foreground">{feature.desc}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* Quick Links */}
+      <section className="space-y-8">
+        <div className="text-center space-y-3">
+          <h2 className="text-3xl md:text-4xl font-bold text-orange-600 dark:text-orange-400">
+            Explore VIBE
+          </h2>
+        </div>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {quickLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="group relative rounded-xl border border-border/50 bg-card/60 p-5 backdrop-blur-sm glow-border ambient ease-smooth hover:-translate-y-1 hover:border-accent/50"
+              className="group p-5 rounded-xl border border-border/50 bg-card/60 hover:-translate-y-1 hover:border-accent/50 transition-all duration-300"
             >
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <span className="inline-block h-2 w-2 rounded-full bg-gradient-to-r from-primary to-accent group-hover:scale-125 ease-smooth" />
-                {link.title}
-              </h3>
-              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                {link.description}
-              </p>
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">{link.icon}</span>
+                <div>
+                  <h3 className="font-semibold group-hover:text-accent transition-colors">{link.title}</h3>
+                  <p className="text-sm text-muted-foreground">{link.desc}</p>
+                </div>
+              </div>
             </Link>
           ))}
         </div>
       </section>
 
-      <TestimonialsSection />
+      {/* CTA */}
+      <section className="py-12">
+        <Card className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20">
+          <CardContent className="p-12 text-center space-y-6">
+            <h2 className="text-3xl md:text-4xl font-bold">Ready to Get Started?</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Install Vibe CLI or VS Code extension and start building with AI
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <Link href="/installation">
+                <Button size="lg">Install Now</Button>
+              </Link>
+              <Link href="/docs">
+                <Button size="lg" variant="outline">Read Docs</Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
     </div>
   );
 }
