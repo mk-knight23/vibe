@@ -70,7 +70,8 @@
         {
           "type": "webview",
           "id": "vibe.vibePanel",
-          "name": "Chat"
+          "name": "Chat",
+          "icon": "media/vibe-icon.svg"
         }
       ]
     },
