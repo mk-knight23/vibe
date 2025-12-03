@@ -5,8 +5,15 @@ import { loadConfig, saveConfig } from '../core/config';
 import { logger } from '../utils/logger';
 import { startInteractive } from './interactive';
 import { startHeadless } from './headless';
+import { orchestrator } from '../core/orchestrator';
+import { workflowCommand } from '../commands/workflow';
+import { templateCommand } from '../commands/template';
+import { metricsCommand } from '../commands/metrics';
 
 const client = new ApiClient();
+
+// Initialize orchestrator
+orchestrator.initialize().catch(console.error);
 
 interface ProgramCommand {
   name: string;
@@ -172,6 +179,68 @@ const commands: ProgramCommand[] = [
         console.log(pc.red(`✗ ${currentProvider}: ${error.message}`));
       }
       console.log();
+    }
+  },
+  {
+    name: 'workflow',
+    description: 'Manage and run workflows',
+    action: async (...args: string[]) => {
+      await workflowCommand(args);
+    }
+  },
+  {
+    name: 'template',
+    description: 'Create projects from templates',
+    action: async (...args: string[]) => {
+      await templateCommand(args);
+    }
+  },
+  {
+    name: 'metrics',
+    description: 'View performance metrics',
+    action: async (...args: string[]) => {
+      await metricsCommand(args);
+    }
+  },
+  {
+    name: 'analyze',
+    description: 'Analyze project structure',
+    action: async () => {
+      const { analyzeCommand } = await import('../commands/enhanced-commands');
+      await analyzeCommand();
+    }
+  },
+  {
+    name: 'exec',
+    description: 'Execute command safely',
+    action: async (command: string) => {
+      const { executeCommand } = await import('../commands/enhanced-commands');
+      await executeCommand(command);
+    }
+  },
+  {
+    name: 'git',
+    description: 'Git automation',
+    action: async (action: string, ...args: any[]) => {
+      const { gitCommand } = await import('../commands/enhanced-commands');
+      await gitCommand(action, ...args);
+    }
+  },
+  {
+    name: 'file',
+    description: 'File operations',
+    action: async (action: string, ...args: any[]) => {
+      const { fileCommand } = await import('../commands/enhanced-commands');
+      await fileCommand(action, ...args);
+    }
+  },
+  {
+    name: 'stream',
+    description: 'Start streaming conversation',
+    action: async () => {
+      const { StreamingEngine } = await import('../conversation/streaming-engine');
+      const engine = new StreamingEngine();
+      await engine.startInteractive();
     }
   }
 ];
