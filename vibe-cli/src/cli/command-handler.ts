@@ -99,7 +99,7 @@ function showHelp(specificCommand?: string): void {
 
   console.log(`
 ${pc.bold(pc.cyan('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'))}
-${pc.bold(pc.cyan('              🎨 VIBE v7.0.0 🔥 Made by KAZI'))}
+${pc.bold(pc.cyan('              🎨 VIBE v7.0.5 🔥 Made by KAZI'))}
 ${pc.bold(pc.cyan('           AI-Powered Development Platform'))}
 ${pc.bold(pc.cyan('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'))}
 

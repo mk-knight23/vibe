@@ -3,11 +3,11 @@
 import { startInteractive } from './interactive';
 import { ApiClient } from '../core/api';
 
-const VERSION = '7.0.0';
+const VERSION = '7.0.5';
 const BANNER = `
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
-║   🎨 VIBE v7.0.0                                         ║
+║   🎨 VIBE v7.0.5                                         ║
 ║   AI-Powered Development Platform                        ║
 ║                                                           ║
 ║   🔥 Made by KAZI                                        ║
