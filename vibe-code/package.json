@@ -1,0 +1,269 @@
+{
+  "name": "vibe-vscode",
+  "displayName": "Vibe VS Code - Autonomous AI Coding",
+  "description": "Fully autonomous AI coding environment with 4 providers, filesystem CRUD, shell execution, project generators, runtime sandbox, and agent mode. Like Claude Desktop + Cursor + Windsurf combined.",
+  "version": "4.0.0",
+  "publisher": "mktech",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mk-knight23/vibe"
+  },
+  "bugs": {
+    "url": "https://github.com/mk-knight23/vibe/issues"
+  },
+  "homepage": "https://github.com/mk-knight23/vibe#readme",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Other",
+    "AI",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "ai",
+    "autonomous",
+    "agent",
+    "coding-assistant",
+    "openrouter",
+    "megallm",
+    "agentrouter",
+    "routeway",
+    "filesystem",
+    "shell",
+    "sandbox",
+    "project-generator",
+    "claude",
+    "cursor",
+    "windsurf"
+  ],
+  "main": "./dist/extension.js",
+  "scripts": {
+    "compile": "rimraf dist && tsc -p ./tsconfig.json",
+    "watch": "tsc -p ./tsconfig.json -w",
+    "package": "vsce package --no-dependencies",
+    "lint": "echo \"No lint configured\""
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.94.0",
+    "@types/node": "^22.7.5",
+    "typescript": "^5.6.3",
+    "rimraf": "^6.0.1",
+    "vsce": "^2.15.0"
+  },
+  "dependencies": {},
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "vibe-sidebar",
+          "title": "Vibe",
+          "icon": "media/vibe-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "vibe-sidebar": [
+        {
+          "id": "vibe.vibePanel",
+          "type": "webview",
+          "name": "Chat",
+          "icon": "media/vibe-icon.svg"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "vibe.openChat",
+        "title": "Vibe: Open Chat",
+        "category": "Vibe",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "vibe.openAgent",
+        "title": "Vibe: Open Agent Panel",
+        "category": "Vibe",
+        "icon": "$(robot)"
+      },
+      {
+        "command": "vibe.openSettings",
+        "title": "Vibe: Open Settings",
+        "category": "Vibe",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "vibe.createFile",
+        "title": "Vibe: Create File",
+        "category": "Vibe",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "vibe.createFolder",
+        "title": "Vibe: Create Folder",
+        "category": "Vibe",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "vibe.runShellCommand",
+        "title": "Vibe: Run Shell Command",
+        "category": "Vibe",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "vibe.generateProject",
+        "title": "Vibe: Generate Project",
+        "category": "Vibe",
+        "icon": "$(folder-library)"
+      },
+      {
+        "command": "vibe.executeSandbox",
+        "title": "Vibe: Execute Code in Sandbox",
+        "category": "Vibe",
+        "icon": "$(play)"
+      },
+      {
+        "command": "vibe.startAgent",
+        "title": "Vibe: Start Autonomous Agent",
+        "category": "Vibe",
+        "icon": "$(rocket)"
+      },
+      {
+        "command": "vibe.explainCode",
+        "title": "Vibe: Explain Selected Code",
+        "category": "Vibe"
+      },
+      {
+        "command": "vibe.refactorCode",
+        "title": "Vibe: Refactor Selected Code",
+        "category": "Vibe"
+      },
+      {
+        "command": "vibe.generateTests",
+        "title": "Vibe: Generate Tests for Selection",
+        "category": "Vibe"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "vibe.explainCode",
+          "when": "editorHasSelection",
+          "group": "vibe@1"
+        },
+        {
+          "command": "vibe.refactorCode",
+          "when": "editorHasSelection",
+          "group": "vibe@2"
+        },
+        {
+          "command": "vibe.generateTests",
+          "when": "editorHasSelection",
+          "group": "vibe@3"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "vibe.openChat"
+        },
+        {
+          "command": "vibe.openAgent"
+        },
+        {
+          "command": "vibe.createFile"
+        },
+        {
+          "command": "vibe.createFolder"
+        },
+        {
+          "command": "vibe.runShellCommand"
+        },
+        {
+          "command": "vibe.generateProject"
+        },
+        {
+          "command": "vibe.executeSandbox"
+        },
+        {
+          "command": "vibe.startAgent"
+        }
+      ]
+    },
+    "configuration": {
+      "type": "object",
+      "title": "Vibe v5.0",
+      "properties": {
+        "vibe.openrouterApiKey": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "OpenRouter API key (40+ free models)"
+        },
+        "vibe.megallmApiKey": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "MegaLLM API key (primary provider)"
+        },
+        "vibe.agentrouterApiKey": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "AgentRouter API key (Claude models)"
+        },
+        "vibe.routewayApiKey": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Routeway API key (fallback provider)"
+        },
+        "vibe.provider": {
+          "type": "string",
+          "enum": ["openrouter", "megallm", "agentrouter", "routeway"],
+          "default": "megallm",
+          "markdownDescription": "Primary AI provider (automatic fallback enabled)"
+        },
+        "vibe.defaultModel": {
+          "type": "string",
+          "default": "qwen/qwen3-next-80b-a3b-instruct",
+          "markdownDescription": "Default model (qwen3-next-80b recommended)"
+        },
+        "vibe.autoApproveUnsafeOps": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "⚠️ Auto-approve file edits, commands, and network access (DANGEROUS)"
+        },
+        "vibe.maxContextFiles": {
+          "type": "number",
+          "default": 20,
+          "markdownDescription": "Maximum files to include in context"
+        },
+        "vibe.enableSandbox": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Enable code execution sandbox"
+        },
+        "vibe.sandboxTimeout": {
+          "type": "number",
+          "default": 30000,
+          "markdownDescription": "Sandbox execution timeout (ms)"
+        },
+        "vibe.allowNetworkInSandbox": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Allow network access in sandbox"
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "vibe.openChat",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v"
+      },
+      {
+        "command": "vibe.startAgent",
+        "key": "ctrl+shift+a",
+        "mac": "cmd+shift+a"
+      }
+    ]
+  }
+}

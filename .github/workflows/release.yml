@@ -1,0 +1,91 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Get version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: VIBE v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## 🚀 VIBE v${{ steps.version.outputs.VERSION }} Release
+            
+            ### 📦 Packages Included:
+            - **Vibe CLI v4.0** - Terminal AI Assistant
+            - **Vibe Web v2.0** - Interactive Documentation Platform  
+            - **Vibe Code v4.0** - VS Code Extension
+            
+            ### 🌐 Multi-Provider Support:
+            - OpenRouter (6 models)
+            - MegaLLM (12 models)
+            - AgentRouter (7 models)
+            - Routeway (6 models)
+            
+            **Total: 27+ AI models with free API access!**
+            
+            ---
+            
+            ### 🚀 Quick Start:
+            
+            **Install CLI:**
+            ```bash
+            npm install -g vibe-ai-cli
+            vibe chat "Hello!"
+            ```
+            
+            **Try Web:**
+            Visit [https://vibe-ai.vercel.app](https://vibe-ai.vercel.app)
+            
+            **Install VS Code Extension:**
+            Search "Vibe VS Code" in VS Code Marketplace
+            
+            ---
+            
+            ### ✨ Key Features:
+            - 🆓 Free API access included
+            - 🌐 4 AI providers with automatic fallback
+            - 💬 Interactive chat interface
+            - 📁 Auto file creation from AI responses
+            - 🎯 Agent mode for autonomous tasks
+            - 🎨 Beautiful UI with dark mode
+            - ⚡ Zero configuration required
+            
+            ### 📝 What's New in v${{ steps.version.outputs.VERSION }}:
+            - Multi-provider architecture
+            - Enhanced UI/UX across all platforms
+            - Improved performance and stability
+            - Better error handling
+            - Updated documentation
+            
+            ---
+            
+            ### 📚 Documentation:
+            - [Main README](https://github.com/mk-knight23/vibe/blob/main/README.md)
+            - [CLI Documentation](https://github.com/mk-knight23/vibe/blob/main/vibe-cli/README.md)
+            - [Web Documentation](https://vibe-ai.vercel.app/docs)
+            - [VS Code Extension Guide](https://github.com/mk-knight23/vibe/blob/main/vibe-code/readme.md)
+            
+            ### 🐛 Report Issues:
+            [GitHub Issues](https://github.com/mk-knight23/vibe/issues)
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

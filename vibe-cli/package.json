@@ -1,0 +1,92 @@
+{
+  "name": "vibe-ai-cli",
+  "version": "7.0.2",
+  "description": "Next-Gen AI Development Platform - 60+ Commands, 42+ Tools, Multi-File Editing, Advanced Agents, Cloud Deploy, DevOps Suite",
+  "main": "dist/cli/index.js",
+  "bin": {
+    "vibe": "bin/vibe.js",
+    "vibe7": "bin/vibe.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:v7": "tsc && echo '✅ v7.0.0 Production Build Complete'",
+    "prepublishOnly": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "vitest run tests/e2e",
+    "test:security": "vitest run tests/security",
+    "test:performance": "vitest run tests/performance",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:security && npm run test:performance && npm run test:e2e",
+    "test:acceptance": "node scripts/acceptance.js",
+    "test:coverage": "vitest run --coverage",
+    "start": "node bin/vibe.js",
+    "dev": "tsc --watch"
+  },
+  "keywords": [
+    "ai",
+    "cli",
+    "assistant",
+    "openrouter",
+    "megallm",
+    "agentrouter",
+    "routeway",
+    "code-generation",
+    "chatbot",
+    "developer-tools",
+    "multi-provider",
+    "llm",
+    "gpt",
+    "claude",
+    "gemini",
+    "deepseek",
+    "automation",
+    "workflow",
+    "templates",
+    "scaffolding",
+    "performance",
+    "monitoring",
+    "multi-file-editing",
+    "advanced-agents",
+    "devops",
+    "cloud",
+    "debugging",
+    "docker",
+    "kubernetes",
+    "vercel",
+    "aws",
+    "firebase",
+    "v7",
+    "production"
+  ],
+  "author": "KAZI",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mk-knight23/vibe.git",
+    "directory": "vibe-cli"
+  },
+  "bugs": {
+    "url": "https://github.com/mk-knight23/vibe/issues"
+  },
+  "homepage": "https://github.com/mk-knight23/vibe#readme",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "fast-glob": "^3.3.2",
+    "inquirer": "^11.1.0",
+    "node-fetch": "^3.3.2",
+    "ora": "^8.1.1",
+    "picocolors": "^1.1.1",
+    "simple-git": "^3.27.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@vitest/coverage-v8": "^2.1.9",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.9"
+  }
+}
