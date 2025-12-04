@@ -1,88 +1,12 @@
 {
-  "name": "vibe-cli",
-  "private": false,
-  "version": "1.0.5",
-  "description": "CLI to chat with OpenRouter free models and Claude Code–style tooling.",
-  "keywords": [
-    "openrouter",
-    "cli",
-    "chat",
-    "ai",
-    "llm"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/mk-knight23/vibe-cli.git"
-  },
-  "bugs": {
-    "url": "https://github.com/mk-knight23/vibe-cli/issues"
-  },
-  "homepage": "https://github.com/mk-knight23/vibe-cli#readme",
-  "author": "mk-knight23 <noreply@users.noreply.github.com>",
+  "name": "vibe",
+  "version": "2.1.0",
+  "description": "3 Independent AI Tools: CLI, Web, VS Code Extension",
+  "private": true,
   "license": "MIT",
-  "engines": {
-    "node": ">=18"
-  },
-  "files": [
-    "cli.cjs",
-    "bin/vibe.cjs",
-    "lib/openrouter.cjs",
-    "lib/agent.cjs",
-    "lib/codegen.cjs",
-    "lib/multiedit.cjs",
-    "lib/refactor.cjs",
-    "lib/debug.cjs",
-    "lib/testgen.cjs",
-    "lib/gittools.cjs",
-    "lib/apikey.cjs",
-    "plugins/",
-    "themes/",
-    "sessions/",
-    "tools.cjs",
-    "README.md",
-    "LICENSE",
-    "package.json"
-  ],
-  "bin": {
-    "vibe": "bin/vibe.cjs"
-  },
-  "scripts": {
-    "smoke": "node scripts/smoke.cjs",
-    "build:bin": "pkg -t node18-linux-x64,node18-macos-x64,node18-win-x64 --out-path dist cli.cjs && mv dist/cli-linux dist/cli-linux || true && mv dist/cli-macos dist/cli-macos || true && mv dist/cli-win.exe dist/cli-win.exe || true",
-    "release:check": "node -e \"console.log('Tag to release, e.g., v1.0.0')\"",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node cli.cjs",
-    "tui": "node src/tui/app.cjs",
-    "dev": "next dev",
-    "build": "next build"
-  },
-  "type": "module",
+  "repository": "https://github.com/mk-knight23/vibe",
+  "homepage": "https://vibe-ai.vercel.app",
   "dependencies": {
-    "axios": "^1.13.2",
-    "chalk": "^5.6.2",
-    "chokidar": "^3.6.0",
-    "conf": "^13.0.0",
-    "fast-glob": "^3.3.3",
-    "fs-extra": "^11.2.0",
-    "inquirer": "^12.11.1",
-    "marked": "^17.0.0",
-    "next": "^16.0.2",
-    "node-fetch": "^3.3.2",
-    "ora": "^9.0.0",
-    "picocolors": "^1.1.1",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "sharp": "^0.33.5",
-    "simple-git": "^3.27.0",
-    "fuse.js": "^7.0.0",
-    "xterm": "^5.3.0",
-    "xterm-addon-fit": "^0.8.0"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.17",
-    "autoprefixer": "^10.4.22",
-    "pkg": "^5.8.1",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.17"
+    "vibe-ai-cli": "^7.0.0"
   }
 }

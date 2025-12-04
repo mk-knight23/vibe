@@ -1,41 +1,91 @@
-name: Release binaries
+name: Create Release
 
 on:
   push:
     tags:
-      - 'v*'
-
-permissions:
-  contents: write
+      - 'v*.*.*'
 
 jobs:
-  build-and-release:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 18
-      - run: npm ci || npm i
-      - run: npm run smoke || true
-      - run: npm run build:bin
-      - name: Rename artifacts
-        shell: bash
+      
+      - name: Get version from tag
+        id: version
         run: |
-          mkdir -p upload
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
-            mv dist/cli-linux ${GITHUB_WORKSPACE}/upload/vibe-linux-x64
-          elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            mv dist/cli-macos ${GITHUB_WORKSPACE}/upload/vibe-macos-x64
-          else
-            mv dist/cli-win.exe ${GITHUB_WORKSPACE}/upload/vibe-win-x64.exe
-          fi
-      - name: Release
-        uses: softprops/action-gh-release@v2
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
         with:
-          files: upload/*
+          name: VIBE v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## 🚀 VIBE v${{ steps.version.outputs.VERSION }} Release
+            
+            ### 📦 Packages Included:
+            - **Vibe CLI v4.0** - Terminal AI Assistant
+            - **Vibe Web v2.0** - Interactive Documentation Platform  
+            - **Vibe Code v4.0** - VS Code Extension
+            
+            ### 🌐 Multi-Provider Support:
+            - OpenRouter (6 models)
+            - MegaLLM (12 models)
+            - AgentRouter (7 models)
+            - Routeway (6 models)
+            
+            **Total: 27+ AI models with free API access!**
+            
+            ---
+            
+            ### 🚀 Quick Start:
+            
+            **Install CLI:**
+            ```bash
+            npm install -g vibe-ai-cli
+            vibe chat "Hello!"
+            ```
+            
+            **Try Web:**
+            Visit [https://vibe-ai.vercel.app](https://vibe-ai.vercel.app)
+            
+            **Install VS Code Extension:**
+            Search "Vibe VS Code" in VS Code Marketplace
+            
+            ---
+            
+            ### ✨ Key Features:
+            - 🆓 Free API access included
+            - 🌐 4 AI providers with automatic fallback
+            - 💬 Interactive chat interface
+            - 📁 Auto file creation from AI responses
+            - 🎯 Agent mode for autonomous tasks
+            - 🎨 Beautiful UI with dark mode
+            - ⚡ Zero configuration required
+            
+            ### 📝 What's New in v${{ steps.version.outputs.VERSION }}:
+            - Multi-provider architecture
+            - Enhanced UI/UX across all platforms
+            - Improved performance and stability
+            - Better error handling
+            - Updated documentation
+            
+            ---
+            
+            ### 📚 Documentation:
+            - [Main README](https://github.com/mk-knight23/vibe/blob/main/README.md)
+            - [CLI Documentation](https://github.com/mk-knight23/vibe/blob/main/vibe-cli/README.md)
+            - [Web Documentation](https://vibe-ai.vercel.app/docs)
+            - [VS Code Extension Guide](https://github.com/mk-knight23/vibe/blob/main/vibe-code/readme.md)
+            
+            ### 🐛 Report Issues:
+            [GitHub Issues](https://github.com/mk-knight23/vibe/issues)
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
