@@ -3,6 +3,7 @@ import * as shell from './shell';
 import * as web from './web';
 import * as memory from './extras';
 import * as sandbox from './extras';
+import * as enhanced from './enhanced';
 
 export interface ToolDefinition {
   name: string;
@@ -65,7 +66,7 @@ export const tools: ToolDefinition[] = [
   {
     name: 'search_file_content',
     displayName: 'SearchText',
-    description: 'Search for text patterns in files',
+    description: 'Search for text patterns in files (uses rg/grep)',
     parameters: {
       pattern: { type: 'string', required: true },
       path: { type: 'string', required: false },
@@ -140,6 +141,178 @@ export const tools: ToolDefinition[] = [
     },
     handler: memory.writeTodos,
     requiresConfirmation: false
+  },
+  {
+    name: 'git_status',
+    displayName: 'GitStatus',
+    description: 'Check git status (non-paginated)',
+    parameters: {},
+    handler: enhanced.gitStatus,
+    requiresConfirmation: false
+  },
+  {
+    name: 'git_diff',
+    displayName: 'GitDiff',
+    description: 'Show git diff (non-paginated)',
+    parameters: {
+      file: { type: 'string', required: false }
+    },
+    handler: enhanced.gitDiff,
+    requiresConfirmation: false
+  },
+  {
+    name: 'git_log',
+    displayName: 'GitLog',
+    description: 'Show git log (non-paginated)',
+    parameters: {
+      count: { type: 'number', required: false }
+    },
+    handler: enhanced.gitLog,
+    requiresConfirmation: false
+  },
+  {
+    name: 'git_blame',
+    displayName: 'GitBlame',
+    description: 'Show git blame for file',
+    parameters: {
+      file: { type: 'string', required: true },
+      lineStart: { type: 'number', required: false },
+      lineEnd: { type: 'number', required: false }
+    },
+    handler: enhanced.gitBlame,
+    requiresConfirmation: false
+  },
+  {
+    name: 'rg_search',
+    displayName: 'RipgrepSearch',
+    description: 'Fast search with ripgrep (fallback to grep)',
+    parameters: {
+      pattern: { type: 'string', required: true },
+      path: { type: 'string', required: false },
+      options: { type: 'object', required: false }
+    },
+    handler: enhanced.ripgrepSearch,
+    requiresConfirmation: false
+  },
+  {
+    name: 'list_files_rg',
+    displayName: 'ListFilesRg',
+    description: 'List all files using rg --files',
+    parameters: {
+      path: { type: 'string', required: false }
+    },
+    handler: enhanced.listFilesRg,
+    requiresConfirmation: false
+  },
+  {
+    name: 'get_file_info',
+    displayName: 'FileInfo',
+    description: 'Get detailed file information',
+    parameters: {
+      file_path: { type: 'string', required: true }
+    },
+    handler: enhanced.getFileInfo,
+    requiresConfirmation: false
+  },
+  {
+    name: 'create_directory',
+    displayName: 'MakeDir',
+    description: 'Create directory (recursive by default)',
+    parameters: {
+      dir_path: { type: 'string', required: true },
+      recursive: { type: 'boolean', required: false }
+    },
+    handler: enhanced.createDirectory,
+    requiresConfirmation: true
+  },
+  {
+    name: 'delete_file',
+    displayName: 'DeleteFile',
+    description: 'Delete a file',
+    parameters: {
+      file_path: { type: 'string', required: true }
+    },
+    handler: enhanced.deleteFile,
+    requiresConfirmation: true
+  },
+  {
+    name: 'move_file',
+    displayName: 'MoveFile',
+    description: 'Move or rename a file',
+    parameters: {
+      source: { type: 'string', required: true },
+      destination: { type: 'string', required: true }
+    },
+    handler: enhanced.moveFile,
+    requiresConfirmation: true
+  },
+  {
+    name: 'copy_file',
+    displayName: 'CopyFile',
+    description: 'Copy a file',
+    parameters: {
+      source: { type: 'string', required: true },
+      destination: { type: 'string', required: true }
+    },
+    handler: enhanced.copyFile,
+    requiresConfirmation: true
+  },
+  {
+    name: 'append_to_file',
+    displayName: 'AppendFile',
+    description: 'Append content to file',
+    parameters: {
+      file_path: { type: 'string', required: true },
+      content: { type: 'string', required: true }
+    },
+    handler: enhanced.appendToFile,
+    requiresConfirmation: true
+  },
+  {
+    name: 'check_dependency',
+    displayName: 'CheckDep',
+    description: 'Check if package exists in project',
+    parameters: {
+      package_name: { type: 'string', required: true }
+    },
+    handler: enhanced.checkDependency,
+    requiresConfirmation: false
+  },
+  {
+    name: 'get_project_info',
+    displayName: 'ProjectInfo',
+    description: 'Get project metadata (framework, language, package manager)',
+    parameters: {},
+    handler: enhanced.getProjectInfo,
+    requiresConfirmation: false
+  },
+  {
+    name: 'run_tests',
+    displayName: 'RunTests',
+    description: 'Run project tests',
+    parameters: {
+      test_command: { type: 'string', required: false }
+    },
+    handler: enhanced.runTests,
+    requiresConfirmation: false
+  },
+  {
+    name: 'run_lint',
+    displayName: 'RunLint',
+    description: 'Run linter',
+    parameters: {
+      lint_command: { type: 'string', required: false }
+    },
+    handler: enhanced.runLint,
+    requiresConfirmation: false
+  },
+  {
+    name: 'run_typecheck',
+    displayName: 'TypeCheck',
+    description: 'Run TypeScript type checking',
+    parameters: {},
+    handler: enhanced.runTypeCheck,
+    requiresConfirmation: false
   }
 ];
 
@@ -159,4 +332,4 @@ export function getToolSchemas() {
   }));
 }
 
-export { filesystem, shell, web, memory, sandbox };
+export { filesystem, shell, web, memory, sandbox, enhanced };
