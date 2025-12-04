@@ -1,245 +1,201 @@
-# VIBE CLI v7.0.5
+# VIBE CLI v7.0.7
 
-**AI-Powered Development Platform** | 60+ Commands | 42+ Tools | 4 Providers | 27+ Models
+**Next-Gen AI Development Platform** - 60+ Commands | 42+ Tools | Multi-Provider AI | Free API Access
 
----
+[![npm version](https://badge.fury.io/js/vibe-ai-cli.svg)](https://www.npmjs.com/package/vibe-ai-cli)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen)](https://nodejs.org/)
 
-## 🚀 Quick Start
+## 🚀 What is VIBE?
+
+VIBE is an AI-powered development platform that brings the power of multiple AI providers directly to your terminal. Build projects, debug code, automate workflows, and deploy to cloud - all through natural conversation.
+
+## ✨ Features
+
+### 🤖 Multi-Provider AI Support
+- **OpenRouter** - Access 27+ models (GPT-4, Claude, Gemini, DeepSeek)
+- **MegaLLM** - Free API with powerful models
+- **AgentRouter** - Specialized AI agents for specific tasks
+- **Routeway** - Optimized routing for best performance
+
+### 🛠️ 42+ Development Tools
+- **File Operations** - Read, write, search, glob patterns
+- **Shell Execution** - Run commands with safety checks
+- **Web Scraping** - HTTP requests, API calls, data extraction
+- **Git Operations** - Version control automation
+- **Package Management** - npm, yarn, pnpm support
+- **Code Analysis** - Linting, formatting, testing
+
+### 📦 60+ CLI Commands
+- **Project Scaffolding** - Create full-stack apps instantly
+- **Code Generation** - Components, APIs, tests
+- **Debugging** - AI-powered error analysis
+- **DevOps** - Docker, Kubernetes, CI/CD
+- **Cloud Deployment** - Vercel, AWS, Firebase
+- **Workflow Automation** - Custom workflows
+
+### ⚡ Advanced Capabilities
+- **Multi-File Editing** - Edit multiple files simultaneously
+- **Context-Aware Memory** - Remembers your project context
+- **Agent-Based Workflows** - Complex tasks broken into steps
+- **Real-Time Monitoring** - Track operations and performance
+- **Session Management** - Save and resume work
+- **Tool Execution Tracking** - Monitor all operations
+
+## 📦 Installation
 
 ```bash
-# Install
 npm install -g vibe-ai-cli
-
-# Run
-vibe
-
-# Or use npx
-npx vibe-ai-cli
 ```
 
----
+## 🎯 Quick Start
 
-## 📁 Project Structure
+```bash
+# Start VIBE
+vibe
+
+# Or use version-specific alias
+vibe7
+```
+
+## 💡 Usage Examples
+
+### Create a Full-Stack App
+```bash
+vibe
+> Create a Next.js app with TypeScript, Tailwind, and Prisma
+```
+
+### Debug Code
+```bash
+vibe
+> Debug the authentication error in src/auth.ts
+```
+
+### Deploy to Cloud
+```bash
+vibe
+> Deploy this project to Vercel with environment variables
+```
+
+### Generate Tests
+```bash
+vibe
+> Write comprehensive tests for the user service
+```
+
+### Setup DevOps
+```bash
+vibe
+> Create Docker setup with multi-stage builds
+```
+
+## 🎮 Available Commands
+
+### Slash Commands
+| Command | Description |
+|---------|-------------|
+| `/help` | Show all available commands |
+| `/model` | Switch AI model |
+| `/provider` | Change AI provider |
+| `/clear` | Clear conversation history |
+| `/memory` | View memory and context |
+| `/quit` | Exit VIBE |
+
+### Natural Language Commands
+Just describe what you want in plain English:
+- "Create a React component for user profile"
+- "Add authentication to my Express API"
+- "Write tests for the payment service"
+- "Deploy to AWS with auto-scaling"
+- "Setup CI/CD pipeline with GitHub Actions"
+
+## 🏗️ Project Structure
 
 ```
 vibe-cli/
 ├── src/
-│   ├── cli/          # CLI interface & interactive mode
-│   ├── commands/     # All 60+ commands
-│   ├── core/         # Core engine, agents, API
-│   ├── providers/    # AI providers (OpenRouter, MegaLLM, AgentRouter, Routeway)
-│   ├── tools/        # File, shell, web, memory tools
-│   └── utils/        # Helpers & utilities
-├── tests/            # Test suites (unit, integration, e2e, security, performance)
-├── docs/             # Documentation (GUIDE.md, REFERENCE.md)
-└── dist/             # Compiled output
+│   ├── cli/              # CLI interface & interactive mode
+│   ├── core/             # Core functionality
+│   │   ├── api.ts        # Multi-provider API client
+│   │   ├── memory.ts     # Context-aware memory
+│   │   ├── agents.ts     # Agent-based workflows
+│   │   └── ...
+│   ├── tools/            # 42+ development tools
+│   ├── providers/        # AI provider integrations
+│   ├── commands/         # 60+ CLI commands
+│   └── utils/            # Utility functions
+├── tests/                # Comprehensive test suites
+└── docs/                 # Documentation
 ```
 
----
+## 🔧 Configuration
 
-## 🎯 Features
+VIBE works out of the box with free APIs. For advanced features:
 
-### Core Capabilities
-- **60+ Commands**: Project scaffolding, code generation, debugging, testing
-- **42+ Tools**: File operations, shell execution, web scraping, memory management
-- **4 AI Providers**: OpenRouter, MegaLLM, AgentRouter, Routeway
-- **27+ Models**: GPT-4, Claude, Gemini, DeepSeek, Qwen, and more
-- **Multi-File Editing**: Edit multiple files simultaneously
-- **Advanced Agents**: Autonomous task execution
-- **Cloud Deployment**: Vercel, AWS, Firebase, Docker, Kubernetes
-- **DevOps Suite**: CI/CD, monitoring, logging
-
-### AI Providers
 ```bash
-# OpenRouter - 100+ models
-vibe /provider openrouter
-
-# MegaLLM - Free API access
-vibe /provider megallm
-
-# AgentRouter - Specialized agents
-vibe /provider agentrouter
-
-# Routeway - Fast routing
-vibe /provider routeway
+# Optional: Set API keys for premium providers
+export OPENROUTER_API_KEY="your-key"
+export ANTHROPIC_API_KEY="your-key"
 ```
 
-### Available Models
-- **OpenAI**: GPT-4, GPT-4 Turbo, GPT-3.5
-- **Anthropic**: Claude 3.5 Sonnet, Claude 3 Opus
-- **Google**: Gemini 2.0 Flash, Gemini Pro
-- **DeepSeek**: DeepSeek V3, DeepSeek Coder
-- **Qwen**: Qwen 3 Next 80B, Qwen 2.5 Coder
-- **Meta**: Llama 3.3 70B, Llama 3.1 405B
-- **And 20+ more models**
+## 📚 Documentation
 
----
+- **[User Guide](./docs/USER_GUIDE.md)** - Complete user documentation
+- **[Developer Guide](./docs/DEVELOPER_GUIDE.md)** - Development and API reference
+- **[Features](./docs/FEATURES.md)** - Detailed feature list
+- **[Tools Reference](./docs/TOOLS.md)** - All available tools
+- **[Code Structure](./docs/CODE_STRUCTURE.md)** - Architecture overview
 
-## 📖 Commands
+## 🎓 Examples
 
-### Slash Commands
-```bash
-/help              # Show all commands
-/quit              # Exit VIBE
-/clear             # Clear conversation
-/version           # Show version
-/model <name>      # Switch AI model
-/models            # List available models
-/provider <name>   # Switch provider
-/create <project>  # Create new project
-/tools             # List all tools
-/agent <task>      # Run autonomous agent
-/analyze           # Analyze codebase
-/init <template>   # Initialize from template
-/workflow <name>   # Run workflow
-/metrics           # Show performance metrics
+### Example 1: Full-Stack Todo App
+```
+You: Create a full-stack todo app with Next.js, Prisma, and PostgreSQL
+VIBE: [Generates complete app with database, API routes, UI components]
 ```
 
-### Project Commands
-```bash
-# Create projects
-vibe /create react-app my-app
-vibe /create node-api my-api
-vibe /create fullstack my-project
-
-# Initialize from templates
-vibe /init react-ts
-vibe /init node-api
-vibe /init nextjs
+### Example 2: Microservices
+```
+You: Setup microservices architecture with Docker and Kubernetes
+VIBE: [Creates services, Dockerfiles, K8s configs, API gateway]
 ```
 
-### Development Commands
-```bash
-# Code generation
-"Create a React component for user profile"
-"Generate API endpoints for user management"
-"Write unit tests for authentication"
-
-# Debugging
-"Debug this error: [paste error]"
-"Fix the bug in auth.ts"
-"Optimize this function"
-
-# Refactoring
-"Refactor this code to use TypeScript"
-"Convert class components to hooks"
-"Add error handling"
+### Example 3: Testing Suite
+```
+You: Add comprehensive testing with Jest and Playwright
+VIBE: [Generates unit tests, integration tests, E2E tests]
 ```
 
-### DevOps Commands
-```bash
-# Deployment
-"Deploy to Vercel"
-"Create Docker container"
-"Setup Kubernetes deployment"
+## 🚀 Upgrades in v7.0.7
 
-# CI/CD
-"Setup GitHub Actions"
-"Create deployment pipeline"
-"Add automated testing"
+### New Features
+- ✅ Enhanced error handling with context-aware messages
+- ✅ Improved multi-file editing capabilities
+- ✅ Better memory management and context retention
+- ✅ Optimized provider switching
+- ✅ Enhanced tool execution tracking
 
-# Monitoring
-"Add logging"
-"Setup error tracking"
-"Create health checks"
-```
+### Improvements
+- ✅ Faster startup time (<1s)
+- ✅ Better TypeScript support
+- ✅ Comprehensive documentation
+- ✅ Improved error messages
+- ✅ Enhanced security measures
 
----
+### Bug Fixes
+- ✅ Fixed TypeScript compilation errors
+- ✅ Resolved memory leaks
+- ✅ Fixed provider switching issues
+- ✅ Improved file operation reliability
 
-## 🔧 Tools
+## 🔒 Security
 
-### File Operations
-- `list_directory` - List files and folders
-- `read_file` - Read file contents
-- `write_file` - Create/update files
-- `glob` - Pattern matching
-- `search_file_content` - Search in files
-- `replace` - Find and replace
-
-### Shell Operations
-- `run_shell_command` - Execute commands
-- Smart shell with context awareness
-- Command history and suggestions
-
-### Web Operations
-- `web_fetch` - Fetch web content
-- `google_web_search` - Search the web
-- Web scraping and parsing
-
-### Memory Operations
-- `save_memory` - Save context
-- `write_todos` - Task management
-- Session persistence
-
----
-
-## 🎨 Usage Examples
-
-### 1. Create React App
-```bash
-vibe
-> /create react-app my-app
-> "Add routing with React Router"
-> "Create login and dashboard pages"
-> "Add Tailwind CSS styling"
-```
-
-### 2. Build API
-```bash
-vibe
-> /create node-api my-api
-> "Add user authentication with JWT"
-> "Create CRUD endpoints for posts"
-> "Add input validation"
-```
-
-### 3. Debug Code
-```bash
-vibe
-> "Debug this error: TypeError: Cannot read property 'map' of undefined"
-> "The error is in UserList.tsx line 45"
-```
-
-### 4. Deploy Project
-```bash
-vibe
-> "Deploy this Next.js app to Vercel"
-> "Setup environment variables"
-> "Configure custom domain"
-```
-
----
-
-## ⚙️ Configuration
-
-### Environment Variables
-```bash
-# API Keys (optional - free tier available)
-export OPENROUTER_API_KEY=your_key
-export MEGALLM_API_KEY=your_key
-
-# Output format
-export VIBE_JSON_OUTPUT=true
-
-# Default provider
-export VIBE_PROVIDER=megallm
-
-# Default model
-export VIBE_MODEL=qwen/qwen3-next-80b-a3b-instruct
-```
-
-### Config File
-Create `~/.vibe/config.json`:
-```json
-{
-  "provider": "megallm",
-  "model": "qwen/qwen3-next-80b-a3b-instruct",
-  "autoApprove": false,
-  "maxTokens": 4096
-}
-```
-
----
+- Input validation on all operations
+- Safe shell command execution
+- Sandboxed file operations
+- API key encryption
+- Rate limiting support
 
 ## 🧪 Testing
 
@@ -247,242 +203,104 @@ Create `~/.vibe/config.json`:
 # Run all tests
 npm test
 
-# Run specific test suites
+# Run specific test suite
 npm run test:unit
 npm run test:integration
 npm run test:e2e
-npm run test:security
-npm run test:performance
 
-# Run with coverage
+# With coverage
 npm run test:coverage
 ```
 
----
-
-## 📊 Statistics
-
-- **Folders**: 6 core folders
-- **Files**: 79 TypeScript files
-- **Source Size**: 432KB
-- **Compiled Size**: 1.5MB
-- **Tests**: 34 tests across 4 suites
-- **Commands**: 60+ commands
-- **Tools**: 42+ tools
-- **Providers**: 4 AI providers
-- **Models**: 27+ AI models
-
----
-
-## 🔒 Security
-
-- Input validation on all commands
-- Dangerous command detection
-- Shell command confirmation
-- File operation safeguards
-- API key encryption
-- Secure credential storage
-
----
-
-## 🚀 Performance
-
-- Fast startup time (<1s)
-- Efficient token usage
-- Streaming responses
-- Caching for repeated queries
-- Optimized file operations
-- Parallel tool execution
-
----
-
-## 📚 Documentation
-
-- **GUIDE.md** - Quick start guide and command reference
-- **REFERENCE.md** - Troubleshooting and system prompt details
-- **README.md** - This file
-
----
-
 ## 🤝 Contributing
 
-```bash
-# Clone repository
-git clone https://github.com/mk-knight23/vibe.git
-cd vibe/vibe-cli
+Contributions are welcome! Please read our [Contributing Guide](./CONTRIBUTING.md) first.
 
-# Install dependencies
-npm install
-
-# Build
-npm run build
-
-# Test
-npm test
-
-# Run locally
-npm start
-```
-
----
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing`)
+5. Open a Pull Request
 
 ## 📝 License
 
 MIT © KAZI
 
----
+## 🌟 Support
+
+- ⭐ Star this repo if you find it helpful
+- 🐛 [Report bugs](https://github.com/mk-knight23/vibe/issues)
+- 💡 [Request features](https://github.com/mk-knight23/vibe/issues)
+- 💬 [Join discussions](https://github.com/mk-knight23/vibe/discussions)
 
 ## 🔗 Links
 
-- **GitHub**: https://github.com/mk-knight23/vibe
-- **NPM**: https://www.npmjs.com/package/vibe-ai-cli
-- **Website**: https://vibe-ai.vercel.app
-- **Issues**: https://github.com/mk-knight23/vibe/issues
+- **Website:** https://vibe-ai.vercel.app
+- **GitHub:** https://github.com/mk-knight23/vibe
+- **NPM:** https://www.npmjs.com/package/vibe-ai-cli
+- **Issues:** https://github.com/mk-knight23/vibe/issues
+
+## 📊 Stats
+
+- **60+ Commands** - Comprehensive CLI toolkit
+- **42+ Tools** - Development utilities
+- **4 Providers** - Multi-provider AI support
+- **27+ Models** - Access to latest AI models
+- **Free API** - No credit card required
+
+## 🎯 Use Cases
+
+- **Rapid Prototyping** - Build MVPs in minutes
+- **Code Generation** - Generate boilerplate code
+- **Debugging** - AI-powered error analysis
+- **DevOps** - Automate deployment workflows
+- **Learning** - Learn by building with AI guidance
+- **Productivity** - Automate repetitive tasks
+
+## 💻 Requirements
+
+- Node.js >= 16.0.0
+- npm or yarn or pnpm
+- Terminal with UTF-8 support
+
+## 🚀 Getting Started
+
+1. **Install**
+   ```bash
+   npm install -g vibe-ai-cli
+   ```
+
+2. **Run**
+   ```bash
+   vibe
+   ```
+
+3. **Start Building**
+   ```
+   > Create a React app with TypeScript
+   ```
+
+## 📈 Roadmap
+
+- [ ] Plugin system
+- [ ] Web dashboard
+- [ ] Mobile app
+- [ ] Team collaboration
+- [ ] Enterprise features
+- [ ] Custom AI models
+- [ ] Marketplace for tools
+
+## 🙏 Acknowledgments
+
+- OpenRouter for API access
+- MegaLLM for free API
+- All contributors and users
+- Open source community
 
 ---
 
-## 🎉 What's New in v7.0.5
+**Made with ❤️ by KAZI**
 
-### Complete Platform Release
-- **3 Independent Tools**: CLI, Web Platform, VS Code Extension
-- **Unified Documentation**: Comprehensive guides and references
-- **Production Ready**: Fully tested and optimized
-- **NPM Published**: Available globally via npm install
-
-### Enhanced CLI Features
-- 60+ commands for complete development workflow
-- 42+ tools for file, shell, and web operations
-- 4 AI providers with 27+ models
-- Multi-file editing capabilities
-- Advanced autonomous agents
-
-### Improved Developer Experience
-- Better error messages with actionable suggestions
-- Interactive onboarding wizard
-- Faster startup and response times
-- Enhanced streaming support
-- Comprehensive test coverage
-
-### Bug Fixes & Optimizations
-- Fixed TypeScript compilation issues
-- Resolved import path problems
-- Improved memory management
-- Enhanced security measures
-- Better error handling
-
----
-
-## 🎉 What's New in v7.0.2
-
-### Restructured Architecture
-- Reduced from 24 folders to 6 core folders (75% reduction)
-- Better organization with clear separation of concerns
-- Shorter import paths and improved maintainability
-
-### Enhanced Features
-- Interactive onboarding wizard
-- Project configuration prompts
-- Enhanced system prompt with Claude Code patterns
-- Improved error messages with suggestions
-- Better streaming support
-
-### Performance Improvements
-- Faster build times
-- Optimized file operations
-- Reduced memory footprint
-- Better caching strategies
-
-### Bug Fixes
-- Fixed automatic file creation on simple questions
-- Resolved function calling compatibility issues
-- Fixed import path issues
-- Improved error handling
-
----
-
-## 💡 Tips
-
-1. **Use specific commands**: Instead of "create a file", use "create src/components/Button.tsx with a reusable button component"
-
-2. **Provide context**: Share error messages, file contents, or project structure for better assistance
-
-3. **Use agents for complex tasks**: `/agent "Build a complete authentication system with login, signup, and password reset"`
-
-4. **Leverage templates**: Use `/init` to quickly scaffold projects with best practices
-
-5. **Chain commands**: Execute multiple operations in sequence for complex workflows
-
----
-
-## 🐛 Troubleshooting
-
-### Command not found
-```bash
-# Reinstall globally
-npm install -g vibe-ai-cli
-
-# Or use npx
-npx vibe-ai-cli
-```
-
-### API errors
-```bash
-# Check provider status
-vibe /provider megallm
-
-# Try different model
-vibe /model qwen/qwen3-next-80b-a3b-instruct
-```
-
-### Build errors
-```bash
-# Clean and rebuild
-rm -rf dist node_modules
-npm install
-npm run build
-```
-
----
-
-## 📋 Restructuring Summary (v7.0.2)
-
-### Final Structure
-- **6 folders** (reduced from 24 - 75% reduction)
-- **63 TypeScript files** (optimized and organized)
-- **2 documentation files** (consolidated from 9)
-- **1 comprehensive README** (this file)
-
-### Achievements
-✅ Clean, minimal folder structure  
-✅ Clear separation of concerns  
-✅ All 60+ commands preserved  
-✅ All 42+ tools functional  
-✅ Zero breaking changes  
-✅ Production ready  
-
-### Structure
-```
-vibe-cli/
-├── src/
-│   ├── cli/          # 7 files - CLI interface
-│   ├── commands/     # 28 files - All commands
-│   ├── core/         # 13 files - Core engine
-│   ├── providers/    # 5 files - AI providers
-│   ├── tools/        # 7 files - Tools
-│   └── utils/        # 8 files - Utilities
-├── docs/
-│   ├── GUIDE.md      # Quick start & commands
-│   └── REFERENCE.md  # Troubleshooting & reference
-└── README.md         # This file
-```
-
-### Benefits
-- **75% fewer folders** - easier navigation
-- **78% fewer docs** - consolidated information
-- **Better organization** - logical grouping
-- **Improved maintainability** - clear structure
-- **Developer friendly** - easy to understand
-
----
-
-**Built with ❤️ by KAZI | Powered by AI**
+**Version:** 7.0.7  
+**License:** MIT  
+**Status:** Production Ready

@@ -8,8 +8,10 @@ import { parseFilesFromResponse } from '../utils/file-parser';
 import { executeBashCommands } from '../utils/bash-executor';
 import { handleCommand } from './command-handler';
 import { VIBE_SYSTEM_PROMPT, VERSION, DEFAULT_MODEL } from './system-prompt';
+import { MemoryManager } from '../core/memory';
 
 const SYSTEM_PROMPT = VIBE_SYSTEM_PROMPT;
+const DANGEROUS_COMMANDS = ['rm -rf /', 'mkfs', 'killall', 'dd if=', 'format', ':(){:|:&};:'];
 
 interface ConversationMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -18,62 +20,63 @@ interface ConversationMessage {
   tool_calls?: any[];
 }
 
-interface ProjectContext {
-  name: string;
-  type: string;
-  techStack: string[];
-  hasRouting: boolean;
-  hasStyling: boolean;
-  hasTesting: boolean;
+interface OperationStats {
+  filesCreated: number;
+  shellCommands: number;
+  toolsExecuted: number;
+  errors: number;
+  startTime: number;
 }
 
+interface Step {
+  name: string;
+  status: 'pending' | 'running' | 'success' | 'error';
+  emoji: string;
+}
+
+const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+let spinnerIndex = 0;
+
 export async function startInteractive(client: ApiClient): Promise<void> {
-  // Show welcome banner
   showWelcomeBanner();
   
-  // Run onboarding
-  const onboardingChoice = await runOnboarding();
+  const memory = new MemoryManager();
+  memory.updateWorkspaceMemory();
   
-  // Set default provider
+  const onboardingChoice = await runOnboarding();
   client.setProvider('megallm');
   
   const messages: ConversationMessage[] = [{ role: 'system', content: SYSTEM_PROMPT }];
   let currentModel = DEFAULT_MODEL;
   let lastResponse = '';
-  let projectContext: ProjectContext | null = null;
   
-  // Handle onboarding choice
   if (onboardingChoice === 'new-project') {
-    projectContext = await gatherProjectInfo();
-    const projectPrompt = buildProjectPrompt(projectContext);
-    messages.push({ role: 'user', content: projectPrompt });
-    await processUserInput(client, messages, currentModel, projectPrompt, projectContext);
+    const projectInfo = await gatherProjectInfo();
+    const prompt = buildProjectPrompt(projectInfo);
+    messages.push({ role: 'user', content: prompt });
+    memory.startTask(prompt);
+    await processUserInput(client, messages, currentModel, prompt, memory);
   } else if (onboardingChoice === 'analyze') {
-    messages.push({ role: 'user', content: 'Analyze the current directory structure and tell me about this project' });
-    await processUserInput(client, messages, currentModel, 'analyze current directory', null);
+    messages.push({ role: 'user', content: 'Analyze current directory' });
+    memory.startTask('Analyze current directory');
+    await processUserInput(client, messages, currentModel, 'analyze current directory', memory);
   } else if (onboardingChoice === 'model') {
     currentModel = await selectModel(client, currentModel);
   }
   
-  // Main interaction loop
   while (true) {
     try {
-      const { input } = await inquirer.prompt<{ input: string }>([{
-        type: 'input',
-        name: 'input',
-        message: pc.cyan('You:')
-      }]);
-      
+      const input = await getInputWithSuggestions();
       if (!input.trim()) continue;
       
-      // Handle commands
       if (input.startsWith('/')) {
-        const result = await handleSlashCommand(input, client, currentModel, messages, lastResponse);
+        const result = await handleSlashCommand(input, client, currentModel, messages, lastResponse, memory);
         if (result.action === 'quit') break;
         if (result.action === 'clear') {
-          messages.length = 1; // Keep system prompt
+          messages.length = 1;
           lastResponse = '';
-          logger.success('Conversation cleared');
+          memory.clear();
+          showSuccess('Conversation and memory cleared');
           continue;
         }
         if (result.action === 'model-changed') {
@@ -83,32 +86,15 @@ export async function startInteractive(client: ApiClient): Promise<void> {
         continue;
       }
       
-      // Detect project creation intent
-      const isProjectCreation = /\b(create|build|make|generate|scaffold)\b/i.test(input);
-      
-      if (isProjectCreation && !projectContext) {
-        // Ask clarifying questions
-        const shouldGatherInfo = await inquirer.prompt<{ gather: boolean }>([{
-          type: 'confirm',
-          name: 'gather',
-          message: '📦 Would you like to configure project settings?',
-          default: false
-        }]);
-        
-        if (shouldGatherInfo.gather) {
-          projectContext = await gatherProjectInfo();
-        }
-      }
-      
-      // Process user input
-      lastResponse = await processUserInput(client, messages, currentModel, input, projectContext);
+      memory.startTask(input);
+      lastResponse = await processUserInput(client, messages, currentModel, input, memory);
       
     } catch (error: any) {
       if (error.isTtyError) {
-        logger.error('Prompt could not be rendered in this environment');
+        showError('Terminal Error', 'Prompt could not be rendered', 'Try a different terminal');
         break;
       }
-      logger.error(`Unexpected error: ${error.message}`);
+      showError('Unexpected Error', error.message);
     }
   }
   
@@ -117,14 +103,16 @@ export async function startInteractive(client: ApiClient): Promise<void> {
 
 function showWelcomeBanner(): void {
   console.clear();
-  console.log(pc.cyan('═'.repeat(65)));
-  console.log(pc.cyan('║') + ' '.repeat(63) + pc.cyan('║'));
-  console.log(pc.cyan('║') + pc.bold(pc.white('   🎨 VIBE CLI v7.0.2')) + ' '.repeat(40) + pc.cyan('║'));
-  console.log(pc.cyan('║') + pc.gray('   Your intelligent AI-powered development assistant') + ' '.repeat(10) + pc.cyan('║'));
-  console.log(pc.cyan('║') + ' '.repeat(63) + pc.cyan('║'));
-  console.log(pc.cyan('║') + pc.yellow('   🔥 Made by KAZI') + ' '.repeat(43) + pc.cyan('║'));
-  console.log(pc.cyan('║') + ' '.repeat(63) + pc.cyan('║'));
-  console.log(pc.cyan('═'.repeat(65)));
+  const width = 70;
+  console.log(pc.cyan('═'.repeat(width)));
+  console.log(pc.cyan('║') + ' '.repeat(width - 2) + pc.cyan('║'));
+  console.log(pc.cyan('║') + pc.bold(pc.white('   🎨 VIBE CLI v7.0.5')) + ' '.repeat(width - 25) + pc.cyan('║'));
+  console.log(pc.cyan('║') + pc.gray('   AI-Powered Development Platform') + ' '.repeat(width - 39) + pc.cyan('║'));
+  console.log(pc.cyan('║') + ' '.repeat(width - 2) + pc.cyan('║'));
+  console.log(pc.cyan('║') + pc.yellow('   🔥 Made by KAZI') + ' '.repeat(width - 22) + pc.cyan('║'));
+  console.log(pc.cyan('║') + pc.gray('   28 Tools | 4 Providers | 27+ Models') + ' '.repeat(width - 45) + pc.cyan('║'));
+  console.log(pc.cyan('║') + ' '.repeat(width - 2) + pc.cyan('║'));
+  console.log(pc.cyan('═'.repeat(width)));
   console.log();
 }
 
@@ -134,112 +122,102 @@ async function runOnboarding(): Promise<string> {
     name: 'choice',
     message: '✨ How would you like to begin?',
     choices: [
-      { name: '📦 Create a new project', value: 'new-project' },
-      { name: '📂 Continue existing project', value: 'continue' },
-      { name: '🔍 Analyze current folder', value: 'analyze' },
-      { name: '🤖 Switch AI model', value: 'model' },
+      { name: '📦 Create new project', value: 'new-project' },
+      { name: '📂 Continue existing', value: 'continue' },
+      { name: '🔍 Analyze folder', value: 'analyze' },
+      { name: '🤖 Switch model', value: 'model' },
       { name: '💬 Start chatting', value: 'chat' }
     ],
     default: 'chat'
   }]);
-  
   console.log();
   return choice;
 }
 
-async function gatherProjectInfo(): Promise<ProjectContext> {
-  console.log(pc.cyan('📋 Project Configuration\n'));
+async function gatherProjectInfo(): Promise<any> {
+  showSectionHeader('📋 Project Configuration');
   
-  const answers = await inquirer.prompt<{
-    name: string;
-    type: string;
-    routing?: boolean;
-    styling: string;
-    testing: boolean;
-  }>([
+  const answers = await inquirer.prompt([
     {
       type: 'input',
       name: 'name',
       message: '📁 Project name:',
       default: 'my-app',
-      validate: (input: string) => {
-        if (!/^[a-z0-9-]+$/.test(input)) {
-          return 'Use lowercase letters, numbers, and hyphens only';
-        }
-        return true;
-      }
+      validate: (input: string) => /^[a-z0-9-]+$/.test(input) || 'Use lowercase, numbers, hyphens only'
     },
     {
       type: 'list',
       name: 'type',
       message: '🎯 Project type:',
-      choices: [
-        { name: 'React App', value: 'react' },
-        { name: 'Vue App', value: 'vue' },
-        { name: 'Node.js API', value: 'node-api' },
-        { name: 'Python App', value: 'python' },
-        { name: 'HTML/CSS/JS', value: 'vanilla' },
-        { name: 'Other', value: 'other' }
-      ]
+      choices: ['React App', 'Vue App', 'Node.js API', 'Python App', 'HTML/CSS/JS', 'Other']
     },
     {
       type: 'confirm',
       name: 'routing',
       message: '🌐 Add routing?',
       default: false,
-      when: (answers: any) => ['react', 'vue'].includes(answers.type)
+      when: (a: any) => ['React App', 'Vue App'].includes(a.type)
     },
     {
       type: 'list',
       name: 'styling',
-      message: '🎨 Styling solution:',
+      message: '🎨 Styling:',
       choices: ['TailwindCSS', 'CSS Modules', 'Styled Components', 'Plain CSS', 'None'],
       default: 'TailwindCSS'
     },
     {
       type: 'confirm',
       name: 'testing',
-      message: '🧪 Add testing setup?',
+      message: '🧪 Testing setup?',
       default: false
     }
   ]);
   
   console.log();
-  
-  return {
-    name: answers.name,
-    type: answers.type,
-    techStack: [answers.type, answers.styling].filter(Boolean),
-    hasRouting: answers.routing || false,
-    hasStyling: answers.styling !== 'None',
-    hasTesting: answers.testing
-  };
+  return answers;
 }
 
-function buildProjectPrompt(context: ProjectContext): string {
-  let prompt = `Create a ${context.type} project named "${context.name}"`;
-  
-  if (context.hasRouting) prompt += ' with routing';
-  if (context.hasStyling) {
-    const styling = context.techStack.find(t => t !== context.type);
-    if (styling) prompt += ` using ${styling}`;
-  }
-  if (context.hasTesting) prompt += ' and include testing setup';
-  
-  prompt += '. Create a complete, production-ready project structure with all necessary files.';
-  
+function buildProjectPrompt(info: any): string {
+  let prompt = `Create a ${info.type} project named "${info.name}"`;
+  if (info.routing) prompt += ' with routing';
+  if (info.styling && info.styling !== 'None') prompt += ` using ${info.styling}`;
+  if (info.testing) prompt += ' and testing setup';
+  prompt += '. Create complete production-ready structure.';
   return prompt;
 }
 
+async function getInputWithSuggestions(): Promise<string> {
+  const { input } = await inquirer.prompt<{ input: string }>({
+    type: 'input',
+    name: 'input',
+    message: pc.cyan('You:')
+  });
+  
+  if (input === '/') {
+    showCommandHints();
+    return await getInputWithSuggestions();
+  }
+  
+  return input;
+}
+
+function showCommandHints(): void {
+  console.log();
+  console.log(pc.gray('Available commands:'));
+  console.log(pc.yellow('  /help   /create   /model   /agent   /deploy   /scan   /debug'));
+  console.log(pc.yellow('  /quit   /clear    /provider   /tools   /analyze'));
+  console.log();
+}
+
 async function selectModel(client: ApiClient, currentModel: string): Promise<string> {
-  const spinner = ora('Fetching available models...').start();
+  const spinner = createSpinner('Fetching models...');
   
   try {
     const models = await client.fetchModels();
-    spinner.stop();
+    spinner.succeed('Models loaded');
     
     if (models.length === 0) {
-      logger.warn('No models available for current provider');
+      showWarning('No models available');
       return currentModel;
     }
     
@@ -251,22 +229,18 @@ async function selectModel(client: ApiClient, currentModel: string): Promise<str
     const { model } = await inquirer.prompt<{ model: string }>([{
       type: 'list',
       name: 'model',
-      message: '🤖 Select AI model:',
+      message: '🤖 Select model:',
       choices,
       default: currentModel,
       pageSize: 15
     }]);
     
-    logger.success(`Switched to ${model}`);
-    console.log();
-    console.log(pc.yellow('💡 Note: If you see raw tool syntax in responses, this model may not'));
-    console.log(pc.yellow('   support function calling. Try switching providers with /provider'));
-    console.log();
+    showSuccess(`Switched to ${model}`);
     return model;
     
   } catch (error: any) {
-    spinner.stop();
-    showError('Failed to fetch models', error.message, 'Try switching providers with /provider');
+    spinner.fail('Failed to fetch models');
+    showError('Model Fetch Failed', error.message, 'Try /provider to switch');
     return currentModel;
   }
 }
@@ -276,7 +250,8 @@ async function handleSlashCommand(
   client: ApiClient,
   currentModel: string,
   messages: ConversationMessage[],
-  lastResponse: string
+  lastResponse: string,
+  memory: MemoryManager
 ): Promise<{ action: string; data?: any }> {
   
   const command = input.slice(1).split(' ')[0];
@@ -298,7 +273,7 @@ async function handleSlashCommand(
       return { action: 'model-changed', data: newModel };
       
     case 'models':
-      suggestCompatibleModels();
+      showCompatibleModels();
       return { action: 'none' };
       
     case 'provider':
@@ -307,10 +282,10 @@ async function handleSlashCommand(
       
     case 'create':
       if (!lastResponse) {
-        logger.warn('No previous response to create files from');
+        showWarning('No previous response to create files from');
         return { action: 'none' };
       }
-      await createFilesFromLastResponse(lastResponse, messages);
+      await createFilesFromResponse(lastResponse, memory);
       return { action: 'none' };
       
     default:
@@ -323,7 +298,7 @@ async function switchProvider(client: ApiClient): Promise<void> {
   const { provider } = await inquirer.prompt<{ provider: string }>([{
     type: 'list',
     name: 'provider',
-    message: '🔌 Select AI provider:',
+    message: '🔌 Select provider:',
     choices: [
       { name: 'MegaLLM (Recommended)', value: 'megallm' },
       { name: 'OpenRouter', value: 'openrouter' },
@@ -333,7 +308,7 @@ async function switchProvider(client: ApiClient): Promise<void> {
   }]);
   
   client.setProvider(provider as any);
-  logger.success(`Switched to ${provider}`);
+  showSuccess(`Switched to ${provider}`);
 }
 
 async function processUserInput(
@@ -341,15 +316,45 @@ async function processUserInput(
   messages: ConversationMessage[],
   currentModel: string,
   input: string,
-  projectContext: ProjectContext | null
+  memory: MemoryManager
 ): Promise<string> {
+  
+  const stats: OperationStats = {
+    filesCreated: 0,
+    shellCommands: 0,
+    toolsExecuted: 0,
+    errors: 0,
+    startTime: Date.now()
+  };
   
   messages.push({ role: 'user', content: input });
   
-  const spinner = ora({
-    text: 'AI is thinking...',
-    color: 'cyan'
-  }).start();
+  // Inject memory context
+  const memoryContext = memory.getMemoryContext();
+  if (memoryContext) {
+    messages.splice(1, 0, {
+      role: 'system',
+      content: `# Persistent Memory\n${memoryContext}\n\nUse this memory to maintain context. Never ask for information already known.`
+    });
+  }
+  
+  // Summarize if too many messages
+  if (messages.length > 15) {
+    const summarized = memory.summarizeOldMessages(messages);
+    messages.length = 0;
+    messages.push(...summarized);
+  }
+  
+  const steps: Step[] = [
+    { name: 'Understanding request', status: 'pending', emoji: '🧠' },
+    { name: 'Planning response', status: 'pending', emoji: '📋' },
+    { name: 'Generating output', status: 'pending', emoji: '✨' }
+  ];
+  
+  showSteps(steps);
+  
+  steps[0].status = 'running';
+  updateSteps(steps);
   
   try {
     const toolSchemas = tools.map(t => ({
@@ -370,219 +375,190 @@ async function processUserInput(
       }
     }));
     
+    steps[0].status = 'success';
+    steps[1].status = 'running';
+    updateSteps(steps);
+    
     const response = await client.chat(messages, currentModel, {
       temperature: 0.7,
       maxTokens: 4000,
       tools: toolSchemas
     });
     
-    spinner.stop();
+    steps[1].status = 'success';
+    steps[2].status = 'running';
+    updateSteps(steps);
     
     const assistantMessage = response.choices?.[0]?.message;
-    if (!assistantMessage) {
-      throw new Error('No response from AI');
-    }
+    if (!assistantMessage) throw new Error('No response from AI');
     
     const reply = assistantMessage.content || '';
     const toolCalls = assistantMessage.tool_calls || [];
     
-    // Check for raw tool call syntax in content (fallback for models without proper function calling)
     if (reply.includes('<|tool_call') && !toolCalls.length) {
-      console.log();
-      console.log(pc.red('═'.repeat(65)));
-      console.log(pc.red('❌ Function Calling Not Supported'));
-      console.log(pc.red('═'.repeat(65)));
-      console.log();
-      console.log(pc.yellow('This model does not support function calling properly.'));
-      console.log(pc.yellow('VIBE CLI requires function calling for file operations and tools.'));
-      console.log();
-      
-      suggestCompatibleModels();
-      
+      steps[2].status = 'error';
+      updateSteps(steps);
+      showFunctionCallingError();
       messages.push({ role: 'assistant', content: reply });
       return reply;
     }
     
-    let actionsPerformed = false;
+    steps[2].status = 'success';
+    updateSteps(steps);
     
-    // Check if this is a project creation request
+    console.log();
+    
     const isProjectCreation = /\b(create|build|make|generate|scaffold)\b/i.test(input);
     
     if (reply && isProjectCreation) {
-      // Parse and create files
-      const projectName = projectContext?.name || inferProjectName(input);
-      const files = parseFilesFromResponse(reply, projectName);
+      const files = parseFilesFromResponse(reply, 'project');
       
       if (files.length > 0) {
-        await createFiles(files, projectName);
-        actionsPerformed = true;
+        await createFilesWithProgress(files, stats, memory);
       }
       
-      // Execute bash commands
-      if (reply.includes('```bash') || reply.includes('```shell') || reply.includes('```sh')) {
+      if (reply.includes('```bash') || reply.includes('```shell')) {
         const shouldExecute = await promptShellExecution(reply);
         if (shouldExecute) {
-          await executeShellCommands(reply);
-          actionsPerformed = true;
+          await executeShellWithProgress(reply, stats, memory);
         }
       }
-    }
-    
-    // Show AI response if no actions were performed
-    if (reply && !actionsPerformed) {
-      renderAIResponse(reply);
+    } else if (reply) {
+      await streamAIResponse(reply);
     }
     
     messages.push({ role: 'assistant', content: reply });
     
-    // Handle tool calls
     if (toolCalls.length > 0) {
-      await executeToolCalls(toolCalls, messages, client, currentModel, toolSchemas);
+      await executeToolCallsWithTimeline(toolCalls, messages, client, currentModel, toolSchemas, stats, memory);
     }
+    
+    // Remove memory context message after processing
+    const memoryIndex = messages.findIndex(m => m.role === 'system' && m.content.includes('# Persistent Memory'));
+    if (memoryIndex > 0) {
+      messages.splice(memoryIndex, 1);
+    }
+    
+    showOperationSummary(stats);
+    await showFollowUpSuggestions(input);
     
     return reply;
     
   } catch (error: any) {
-    spinner.stop();
-    showError('API Request Failed', error.message, 'Check your connection or try /provider to switch providers');
+    steps.forEach(s => { if (s.status === 'running') s.status = 'error'; });
+    updateSteps(steps);
+    stats.errors++;
+    memory.onError(error.message);
+    showError('Request Failed', error.message, 'Check connection or try /provider');
     return '';
   }
 }
 
-function inferProjectName(input: string): string {
-  const createMatch = input.match(/\b(?:create|build|make|generate)\s+(?:a\s+)?(?:an\s+)?(\w+(?:-\w+)*)/i);
-  if (createMatch) return createMatch[1] + '-app';
-  return 'project';
+function showSteps(steps: Step[]): void {
+  console.log();
+  showSectionHeader('🚀 Processing Pipeline');
+  steps.forEach(step => {
+    const icon = step.status === 'pending' ? '○' : step.status === 'running' ? SPINNER_FRAMES[0] : step.status === 'success' ? '✓' : '✗';
+    const color = step.status === 'success' ? pc.green : step.status === 'error' ? pc.red : pc.gray;
+    console.log(color(`${step.emoji} ${icon} ${step.name}`));
+  });
 }
 
-async function createFiles(files: Array<{path: string, content: string}>, projectName: string): Promise<void> {
-  console.log();
-  console.log(pc.cyan('═'.repeat(65)));
-  console.log(pc.cyan(`📁 Creating Project: ${pc.bold(projectName)}`));
-  console.log(pc.cyan('═'.repeat(65)));
-  console.log();
-  
-  const results = await Promise.allSettled(
-    files.map(async (file) => {
-      try {
-        await executeTool('write_file', { file_path: file.path, content: file.content });
-        return { path: file.path, success: true };
-      } catch (err: any) {
-        return { path: file.path, success: false, error: err.message };
-      }
-    })
-  );
-  
-  results.forEach((result) => {
-    if (result.status === 'fulfilled') {
-      const { path, success, error } = result.value;
-      if (success) {
-        console.log(`${pc.green('✓')} ${path}`);
-      } else {
-        console.log(`${pc.red('✗')} ${path}: ${error}`);
-      }
-    }
+function updateSteps(steps: Step[]): void {
+  process.stdout.write('\x1b[' + (steps.length + 1) + 'A');
+  steps.forEach(step => {
+    const icon = step.status === 'pending' ? '○' : step.status === 'running' ? SPINNER_FRAMES[spinnerIndex % SPINNER_FRAMES.length] : step.status === 'success' ? '✓' : '✗';
+    const color = step.status === 'success' ? pc.green : step.status === 'error' ? pc.red : step.status === 'running' ? pc.cyan : pc.gray;
+    console.log(color(`${step.emoji} ${icon} ${step.name}`) + '\x1b[K');
   });
-  
-  const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
-  
-  console.log();
-  console.log(pc.cyan('═'.repeat(65)));
-  console.log(pc.green(`✅ Created ${successCount}/${files.length} file(s)`));
-  console.log(pc.cyan('═'.repeat(65)));
-  console.log();
+  spinnerIndex++;
 }
 
-async function promptShellExecution(response: string): Promise<boolean> {
-  const bashBlocks = response.match(/```(?:bash|shell|sh)\n([\s\S]*?)```/g);
-  if (!bashBlocks) return false;
+async function streamAIResponse(message: string): Promise<void> {
+  showSectionHeader('🧠 AI Response');
   
-  console.log();
-  console.log(pc.yellow('🔧 Shell commands detected:'));
-  console.log();
-  
-  bashBlocks.forEach(block => {
-    const commands = block.replace(/```(?:bash|shell|sh)\n/, '').replace(/```$/, '').trim();
-    commands.split('\n').forEach(cmd => {
-      if (cmd.trim()) {
-        console.log(pc.gray('  $ ') + pc.white(cmd.trim()));
-      }
-    });
-  });
-  
-  console.log();
-  
-  const { execute } = await inquirer.prompt<{ execute: string }>([{
-    type: 'list',
-    name: 'execute',
-    message: 'Would you like to execute these commands?',
-    choices: [
-      { name: '▸ Yes, run them', value: 'yes' },
-      { name: '▸ No, skip', value: 'no' },
-      { name: '▸ Show me a breakdown', value: 'breakdown' }
-    ],
-    default: 'yes'
-  }]);
-  
-  if (execute === 'breakdown') {
-    console.log(pc.cyan('\n📋 Command Breakdown:\n'));
-    bashBlocks.forEach(block => {
-      const commands = block.replace(/```(?:bash|shell|sh)\n/, '').replace(/```$/, '').trim();
-      commands.split('\n').forEach(cmd => {
-        if (cmd.trim()) {
-          console.log(pc.yellow('Command: ') + pc.white(cmd.trim()));
-          console.log(pc.gray('Purpose: ') + explainCommand(cmd.trim()));
-          console.log();
-        }
-      });
-    });
-    
-    const { executeAfter } = await inquirer.prompt<{ executeAfter: boolean }>([{
-      type: 'confirm',
-      name: 'executeAfter',
-      message: 'Execute now?',
-      default: true
-    }]);
-    
-    return executeAfter;
+  const words = message.split(' ');
+  for (let i = 0; i < words.length; i++) {
+    process.stdout.write(words[i] + ' ');
+    await sleep(20);
   }
   
-  return execute === 'yes';
+  console.log('\n');
+  showDivider();
 }
 
-function explainCommand(cmd: string): string {
-  if (cmd.startsWith('cd ')) return 'Change directory';
-  if (cmd.startsWith('npm install')) return 'Install dependencies';
-  if (cmd.startsWith('npm run')) return 'Run npm script';
-  if (cmd.startsWith('git init')) return 'Initialize git repository';
-  if (cmd.startsWith('mkdir')) return 'Create directory';
-  if (cmd.startsWith('touch')) return 'Create file';
-  return 'Execute command';
-}
-
-async function executeShellCommands(response: string): Promise<void> {
-  console.log();
-  console.log(pc.cyan('═'.repeat(65)));
-  console.log(pc.cyan('🔧 Executing Shell Commands'));
-  console.log(pc.cyan('═'.repeat(65)));
-  console.log();
+async function createFilesWithProgress(files: Array<{path: string, content: string}>, stats: OperationStats, memory: MemoryManager): Promise<void> {
+  showSectionHeader('📁 Creating Files');
   
-  const executed = await executeBashCommands(response);
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const progress = `[${i + 1}/${files.length}]`;
+    
+    try {
+      process.stdout.write(pc.cyan(`${progress} Creating ${file.path}... `));
+      await executeTool('write_file', { file_path: file.path, content: file.content });
+      console.log(pc.green('✓'));
+      stats.filesCreated++;
+      memory.onFileWrite(file.path, file.content);
+    } catch (err: any) {
+      console.log(pc.red(`✗ ${err.message}`));
+      stats.errors++;
+      memory.onError(`Failed to create ${file.path}: ${err.message}`);
+    }
+  }
   
   console.log();
-  console.log(pc.cyan('═'.repeat(65)));
-  console.log(pc.green(`✅ Executed ${executed.length} command(s)`));
-  console.log(pc.cyan('═'.repeat(65)));
-  console.log();
+  showDivider();
 }
 
-async function executeToolCalls(
+async function executeShellWithProgress(response: string, stats: OperationStats, memory: MemoryManager): Promise<void> {
+  showSectionHeader('🔧 Executing Commands');
+  
+  const bashBlocks = response.match(/```(?:bash|shell|sh)\n([\s\S]*?)```/g) || [];
+  
+  for (const block of bashBlocks) {
+    const commands = block.replace(/```(?:bash|shell|sh)\n/, '').replace(/```$/, '').trim().split('\n');
+    
+    for (const cmd of commands) {
+      if (!cmd.trim()) continue;
+      
+      if (isDangerousCommand(cmd)) {
+        console.log(pc.red(`✗ Blocked dangerous command: ${cmd}`));
+        continue;
+      }
+      
+      const spinner = createAnimatedSpinner(`Running ${cmd.substring(0, 40)}...`);
+      const startTime = Date.now();
+      
+      try {
+        await executeTool('run_shell_command', { command: cmd });
+        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+        spinner.succeed(`Completed in ${duration}s`);
+        stats.shellCommands++;
+        memory.onShellCommand(cmd, 'success');
+      } catch (err: any) {
+        spinner.fail(`Failed: ${err.message}`);
+        stats.errors++;
+        memory.onError(`Shell command failed: ${cmd} - ${err.message}`);
+      }
+    }
+  }
+  
+  console.log();
+  showDivider();
+}
+
+async function executeToolCallsWithTimeline(
   toolCalls: any[],
   messages: ConversationMessage[],
   client: ApiClient,
   currentModel: string,
-  toolSchemas: any[]
+  toolSchemas: any[],
+  stats: OperationStats,
+  memory: MemoryManager
 ): Promise<void> {
+  
+  showSectionHeader('🔧 Tool Execution Timeline');
   
   for (const call of toolCalls) {
     const tool = tools.find(t => t.name === call.function.name);
@@ -590,11 +566,8 @@ async function executeToolCalls(
     
     const args = JSON.parse(call.function.arguments);
     
-    console.log();
-    console.log(pc.cyan('═'.repeat(65)));
-    console.log(pc.cyan(`🔧 Running Tool: ${pc.bold(tool.displayName)}`));
-    console.log(pc.gray(`Parameters: ${JSON.stringify(args).substring(0, 80)}...`));
-    console.log(pc.cyan('═'.repeat(65)));
+    console.log(pc.cyan(`\n🔧 Tool: ${pc.bold(tool.displayName)}`));
+    console.log(pc.gray(`   ${Object.keys(args).map(k => `${k}: ${JSON.stringify(args[k]).substring(0, 40)}`).join(', ')}`));
     
     let approved = !tool.requiresConfirmation;
     
@@ -609,29 +582,35 @@ async function executeToolCalls(
     }
     
     if (approved) {
-      const spinner = ora(`Executing ${tool.displayName}...`).start();
+      const startTime = Date.now();
       
       try {
         const result = await executeTool(call.function.name, args);
-        spinner.succeed(`${tool.displayName} completed`);
+        const duration = Date.now() - startTime;
+        console.log(pc.green(`   status: success`));
+        console.log(pc.gray(`   duration: ${duration}ms`));
+        stats.toolsExecuted++;
         
-        console.log(pc.green('📦 Status: Success'));
-        console.log(pc.cyan('═'.repeat(65)));
-        console.log();
+        // Update memory based on tool
+        if (call.function.name === 'write_file') {
+          memory.onFileWrite(args.file_path, args.content);
+        } else if (call.function.name === 'read_file') {
+          memory.onFileRead(args.path, result);
+        } else if (call.function.name === 'run_shell_command') {
+          memory.onShellCommand(args.command, result);
+        }
         
         messages.push({
           role: 'tool',
           tool_call_id: call.id,
-          content: JSON.stringify(result)
+          content: 'Success'
         });
         
       } catch (err: any) {
-        spinner.fail(`${tool.displayName} failed`);
-        
-        console.log(pc.red('❌ Status: Failed'));
-        console.log(pc.red(`Error: ${err.message}`));
-        console.log(pc.cyan('═'.repeat(65)));
-        console.log();
+        console.log(pc.red(`   status: failed`));
+        console.log(pc.red(`   error: ${err.message}`));
+        stats.errors++;
+        memory.onError(`Tool ${call.function.name} failed: ${err.message}`);
         
         messages.push({
           role: 'tool',
@@ -642,92 +621,114 @@ async function executeToolCalls(
     }
   }
   
-  // Get AI's follow-up response
-  if (toolCalls.length > 0) {
-    const followUpSpinner = ora('Processing results...').start();
-    
-    try {
-      const nextResponse = await client.chat(messages, currentModel, {
-        temperature: 0.7,
-        maxTokens: 4000,
-        tools: toolSchemas
-      });
-      
-      followUpSpinner.stop();
-      
-      const nextReply = nextResponse.choices?.[0]?.message?.content || '';
-      if (nextReply) {
-        renderAIResponse(nextReply);
-        messages.push({ role: 'assistant', content: nextReply });
-      }
-      
-    } catch (err: any) {
-      followUpSpinner.stop();
-      showError('Follow-up failed', err.message);
-    }
-  }
+  console.log();
+  showDivider();
 }
 
-function renderAIResponse(message: string): void {
+async function promptShellExecution(response: string): Promise<boolean> {
+  const bashBlocks = response.match(/```(?:bash|shell|sh)\n([\s\S]*?)```/g);
+  if (!bashBlocks) return false;
+  
   console.log();
-  console.log(pc.cyan('═'.repeat(65)));
-  console.log(pc.cyan('🧠 AI Response'));
-  console.log(pc.cyan('═'.repeat(65)));
+  showSectionHeader('🔧 Shell Commands Detected');
+  
+  bashBlocks.forEach(block => {
+    const commands = block.replace(/```(?:bash|shell|sh)\n/, '').replace(/```$/, '').trim();
+    commands.split('\n').forEach(cmd => {
+      if (cmd.trim()) {
+        const isDangerous = isDangerousCommand(cmd);
+        const color = isDangerous ? pc.red : pc.white;
+        console.log(color(`  $ ${cmd.trim()}`) + (isDangerous ? pc.red(' [BLOCKED]') : ''));
+      }
+    });
+  });
+  
   console.log();
-  console.log(message);
+  
+  const { execute } = await inquirer.prompt<{ execute: boolean }>([{
+    type: 'confirm',
+    name: 'execute',
+    message: 'Execute these commands?',
+    default: true
+  }]);
+  
+  return execute;
+}
+
+function isDangerousCommand(cmd: string): boolean {
+  return DANGEROUS_COMMANDS.some(dangerous => cmd.includes(dangerous));
+}
+
+function showOperationSummary(stats: OperationStats): void {
+  const duration = ((Date.now() - stats.startTime) / 1000).toFixed(2);
+  
+  showSectionHeader('✨ Operation Summary');
+  console.log(pc.cyan(`  Files created: ${stats.filesCreated}`));
+  console.log(pc.cyan(`  Shell commands: ${stats.shellCommands}`));
+  console.log(pc.cyan(`  Tools executed: ${stats.toolsExecuted}`));
+  console.log(pc.cyan(`  Errors: ${stats.errors}`));
+  console.log(pc.cyan(`  Duration: ${duration}s`));
   console.log();
-  console.log(pc.cyan('═'.repeat(65)));
+  showDivider();
+}
+
+async function showFollowUpSuggestions(lastInput: string): Promise<void> {
+  const suggestions = [
+    '▸ Run project',
+    '▸ Add routing',
+    '▸ Add authentication',
+    '▸ Deploy to Vercel',
+    '▸ Continue coding'
+  ];
+  
+  console.log();
+  console.log(pc.yellow('What would you like to do next?'));
+  suggestions.forEach(s => console.log(pc.gray(s)));
+  console.log();
+}
+
+function showSectionHeader(title: string): void {
+  console.log();
+  console.log(pc.cyan('═'.repeat(70)));
+  console.log(pc.cyan(title));
+  console.log(pc.cyan('─'.repeat(70)));
+}
+
+function showDivider(): void {
+  console.log(pc.cyan('═'.repeat(70)));
   console.log();
 }
 
 function showError(title: string, reason: string, suggestion?: string): void {
   console.log();
-  console.log(pc.red('═'.repeat(65)));
-  console.log(pc.red(`❌ ${title}`));
-  console.log(pc.red('═'.repeat(65)));
-  console.log();
-  console.log(pc.red('Reason: ') + reason);
-  if (suggestion) {
-    console.log(pc.yellow('Suggestion: ') + suggestion);
-  }
-  console.log();
-  console.log(pc.red('═'.repeat(65)));
+  console.log(pc.red('═'.repeat(70)));
+  console.log(pc.red(`❌ ${title.toUpperCase()}`));
+  console.log(pc.red('═'.repeat(70)));
+  console.log(pc.red(`Reason: ${reason}`));
+  if (suggestion) console.log(pc.yellow(`Fix: ${suggestion}`));
+  console.log(pc.red('═'.repeat(70)));
   console.log();
 }
 
-function showHelp(): void {
-  console.log();
-  console.log(pc.cyan('═'.repeat(65)));
-  console.log(pc.cyan('📚 Available Commands'));
-  console.log(pc.cyan('═'.repeat(65)));
-  console.log();
-  console.log(pc.yellow('/help') + '      - Show this help message');
-  console.log(pc.yellow('/quit') + '      - Exit the CLI');
-  console.log(pc.yellow('/clear') + '     - Clear conversation history');
-  console.log(pc.yellow('/model') + '     - Switch AI model');
-  console.log(pc.yellow('/models') + '    - Show compatible models');
-  console.log(pc.yellow('/provider') + '  - Switch AI provider');
-  console.log(pc.yellow('/create') + '    - Create files from last response');
-  console.log();
-  console.log(pc.cyan('═'.repeat(65)));
-  console.log();
+function showWarning(message: string): void {
+  console.log(pc.yellow(`⚠️  ${message}`));
 }
 
-function showGoodbyeMessage(): void {
-  console.log();
-  console.log(pc.cyan('═'.repeat(65)));
-  console.log(pc.cyan('👋 Thanks for using VIBE CLI!'));
-  console.log(pc.gray('   Made with ❤️  by KAZI'));
-  console.log(pc.cyan('═'.repeat(65)));
-  console.log();
+function showSuccess(message: string): void {
+  console.log(pc.green(`✓ ${message}`));
 }
 
-function suggestCompatibleModels(): void {
-  console.log();
-  console.log(pc.cyan('═'.repeat(65)));
-  console.log(pc.cyan('🤖 Recommended Models with Function Calling Support'));
-  console.log(pc.cyan('═'.repeat(65)));
-  console.log();
+function showFunctionCallingError(): void {
+  showError(
+    'Function Calling Not Supported',
+    'This model does not support function calling',
+    'Switch to compatible model with /model'
+  );
+  showCompatibleModels();
+}
+
+function showCompatibleModels(): void {
+  showSectionHeader('🤖 Recommended Models');
   console.log(pc.green('OpenRouter:'));
   console.log('  • anthropic/claude-3.5-sonnet');
   console.log('  • openai/gpt-4o-mini');
@@ -737,19 +738,60 @@ function suggestCompatibleModels(): void {
   console.log('  • qwen/qwen3-next-80b-a3b-instruct (default)');
   console.log();
   console.log(pc.yellow('💡 Switch with: /model'));
-  console.log(pc.cyan('═'.repeat(65)));
+  showDivider();
+}
+
+function showHelp(): void {
+  showSectionHeader('📚 Available Commands');
+  console.log(pc.yellow('/help') + '      - Show this help');
+  console.log(pc.yellow('/quit') + '      - Exit CLI');
+  console.log(pc.yellow('/clear') + '     - Clear conversation');
+  console.log(pc.yellow('/model') + '     - Switch AI model');
+  console.log(pc.yellow('/models') + '    - Show compatible models');
+  console.log(pc.yellow('/provider') + '  - Switch provider');
+  console.log(pc.yellow('/create') + '    - Create files from last response');
+  console.log(pc.yellow('/tools') + '     - Show available tools');
+  console.log(pc.yellow('/agent') + '     - Start agent mode');
+  showDivider();
+}
+
+function showGoodbyeMessage(): void {
+  console.log();
+  console.log(pc.cyan('═'.repeat(70)));
+  console.log(pc.cyan('👋 Thanks for using VIBE CLI!'));
+  console.log(pc.gray('   Made with ❤️  by KAZI'));
+  console.log(pc.gray('   https://github.com/mk-knight23/vibe'));
+  console.log(pc.cyan('═'.repeat(70)));
   console.log();
 }
 
-async function createFilesFromLastResponse(lastResponse: string, messages: ConversationMessage[]): Promise<void> {
-  const lastUserMsg = messages.filter((m: ConversationMessage) => m.role === 'user').pop()?.content || '';
-  const projectName = inferProjectName(lastUserMsg);
-  const files = parseFilesFromResponse(lastResponse, projectName);
-  
+async function createFilesFromResponse(response: string, memory: MemoryManager): Promise<void> {
+  const files = parseFilesFromResponse(response, 'project');
   if (files.length === 0) {
-    logger.warn('No code blocks found in last response');
+    showWarning('No code blocks found in response');
     return;
   }
   
-  await createFiles(files, projectName);
+  const stats: OperationStats = {
+    filesCreated: 0,
+    shellCommands: 0,
+    toolsExecuted: 0,
+    errors: 0,
+    startTime: Date.now()
+  };
+  
+  await createFilesWithProgress(files, stats, memory);
+  showOperationSummary(stats);
+}
+
+function createSpinner(text: string): Ora {
+  return ora({ text, color: 'cyan' }).start();
+}
+
+function createAnimatedSpinner(text: string): Ora {
+  return ora({ text, spinner: 'dots', color: 'cyan' }).start();
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
