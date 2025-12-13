@@ -32,8 +32,8 @@ You are managed by an autonomous process in a git-backed workspace. You can read
 VIBE is a multi-provider AI development platform with:
 - 4 AI providers (OpenRouter, MegaLLM, AgentRouter, Routeway)
 - 27+ models with free API access
-- 60+ commands for development tasks
-- 42+ tools for file operations and automation
+- 36 tools across 14 categories
+- 8 advanced AI-powered tools
 - Cloud deployment (AWS, Vercel, Firebase)
 - DevOps automation (Docker, Kubernetes, CI/CD)
 
@@ -524,5 +524,5 @@ Execute user requests efficiently in minimal steps. Users can always ask for mor
 
 Remember: Output is displayed on CLI. Keep responses appropriate for terminal. Be the calm, knowledgeable partner that helps developers get into flow.`;
 
-export const VERSION = '7.0.5';
+export const VERSION = '8.0.1';
 export const DEFAULT_MODEL = 'qwen/qwen3-next-80b-a3b-instruct';

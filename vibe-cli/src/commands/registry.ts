@@ -3,7 +3,7 @@ import { ApiClient } from '../core/api';
 export interface Command {
   name: string;
   aliases?: string[];
-  category: 'basic' | 'ai' | 'file' | 'code' | 'project' | 'advanced';
+  category: 'basic' | 'ai' | 'project' | 'advanced';
   description: string;
   usage: string;
   crossPlatform: boolean;
@@ -11,12 +11,12 @@ export interface Command {
 }
 
 export const commands: Command[] = [
-  // BASIC COMMANDS
+  // BASIC
   {
     name: 'help',
     aliases: ['h', '?'],
     category: 'basic',
-    description: 'Display help information and available commands',
+    description: 'Show help',
     usage: '/help [command]',
     crossPlatform: true,
     handler: async () => 'help'
@@ -25,16 +25,16 @@ export const commands: Command[] = [
     name: 'quit',
     aliases: ['exit', 'q'],
     category: 'basic',
-    description: 'Exit the CLI application',
+    description: 'Exit CLI',
     usage: '/quit',
     crossPlatform: true,
     handler: async () => 'quit'
   },
   {
     name: 'clear',
-    aliases: ['cls', 'reset'],
+    aliases: ['cls'],
     category: 'basic',
-    description: 'Clear conversation history and start fresh',
+    description: 'Clear conversation',
     usage: '/clear',
     crossPlatform: true,
     handler: async () => 'clear'
@@ -43,18 +43,27 @@ export const commands: Command[] = [
     name: 'version',
     aliases: ['v'],
     category: 'basic',
-    description: 'Show CLI version information',
+    description: 'Show version',
     usage: '/version',
     crossPlatform: true,
     handler: async () => 'version'
   },
+  {
+    name: 'tools',
+    aliases: ['t'],
+    category: 'basic',
+    description: 'List all tools',
+    usage: '/tools',
+    crossPlatform: true,
+    handler: async () => 'tools'
+  },
 
-  // AI CONFIGURATION
+  // AI
   {
     name: 'model',
     aliases: ['m'],
     category: 'ai',
-    description: 'Change AI model (interactive selection)',
+    description: 'Switch AI model',
     usage: '/model',
     crossPlatform: true,
     handler: async () => 'model'
@@ -63,87 +72,117 @@ export const commands: Command[] = [
     name: 'provider',
     aliases: ['p'],
     category: 'ai',
-    description: 'Switch AI provider (OpenRouter, MegaLLM, AgentRouter, Routeway)',
+    description: 'Switch provider',
     usage: '/provider',
     crossPlatform: true,
     handler: async () => 'provider'
   },
 
-  // FILE OPERATIONS
-  {
-    name: 'create',
-    aliases: ['c'],
-    category: 'file',
-    description: 'Create files from last AI response',
-    usage: '/create',
-    crossPlatform: true,
-    handler: async () => 'create'
-  },
-  {
-    name: 'tools',
-    aliases: ['t'],
-    category: 'file',
-    description: 'List all available tools and their capabilities',
-    usage: '/tools',
-    crossPlatform: true,
-    handler: async () => 'tools'
-  },
-
-  // CODE GENERATION
-  {
-    name: 'api',
-    category: 'code',
-    description: 'Generate REST API with multiple endpoints',
-    usage: '/api',
-    crossPlatform: true,
-    handler: async () => 'api'
-  },
-
-  // PROJECT MANAGEMENT
+  // PROJECT
   {
     name: 'analyze',
     aliases: ['scan'],
     category: 'project',
-    description: 'Analyze project structure, dependencies, and statistics',
-    usage: '/analyze',
+    description: 'Analyze code quality',
+    usage: '/analyze [path]',
     crossPlatform: true,
     handler: async () => 'analyze'
   },
   {
-    name: 'init',
+    name: 'security',
+    aliases: ['sec'],
     category: 'project',
-    description: 'Initialize new project with templates',
-    usage: '/init [template]',
+    description: 'Security scan',
+    usage: '/security [path]',
     crossPlatform: true,
-    handler: async () => 'init'
+    handler: async () => 'security'
+  },
+  {
+    name: 'optimize',
+    aliases: ['opt'],
+    category: 'project',
+    description: 'Optimize bundle',
+    usage: '/optimize [path]',
+    crossPlatform: true,
+    handler: async () => 'optimize'
+  },
+  {
+    name: 'scan',
+    category: 'project',
+    description: 'Full project scan (quality + security + optimization)',
+    usage: '/scan [path]',
+    crossPlatform: true,
+    handler: async () => 'scan'
   },
 
   // ADVANCED
   {
+    name: 'refactor',
+    category: 'advanced',
+    description: 'Refactor code',
+    usage: '/refactor <file> [extract|inline]',
+    crossPlatform: true,
+    handler: async () => 'refactor'
+  },
+  {
+    name: 'test',
+    category: 'advanced',
+    description: 'Generate tests',
+    usage: '/test <file> [framework]',
+    crossPlatform: true,
+    handler: async () => 'test'
+  },
+  {
+    name: 'docs',
+    category: 'advanced',
+    description: 'Generate docs',
+    usage: '/docs <file>',
+    crossPlatform: true,
+    handler: async () => 'docs'
+  },
+  {
+    name: 'migrate',
+    category: 'advanced',
+    description: 'Migrate code',
+    usage: '/migrate <file> <from> <to>',
+    crossPlatform: true,
+    handler: async () => 'migrate'
+  },
+  {
+    name: 'benchmark',
+    aliases: ['bench'],
+    category: 'advanced',
+    description: 'Performance benchmark',
+    usage: '/benchmark <file>',
+    crossPlatform: true,
+    handler: async () => 'benchmark'
+  },
+  {
+    name: 'memory',
+    aliases: ['mem'],
+    category: 'advanced',
+    description: 'View/search memory',
+    usage: '/memory [search <query>|clear]',
+    crossPlatform: true,
+    handler: async () => 'memory'
+  },
+  {
     name: 'agent',
     aliases: ['auto'],
     category: 'advanced',
-    description: 'Start autonomous agent mode for multi-step tasks',
+    description: 'Autonomous mode',
     usage: '/agent',
     crossPlatform: true,
     handler: async () => 'agent'
   },
   {
-    name: 'workflow',
-    aliases: ['wf'],
+    name: 'create',
+    aliases: ['c'],
     category: 'advanced',
-    description: 'Manage and execute workflows',
-    usage: '/workflow [list|run|info] [id]',
+    description: 'Create files from response',
+    usage: '/create',
     crossPlatform: true,
-    handler: async () => 'workflow'
-  },
-  {
-    name: 'metrics',
-    category: 'advanced',
-    description: 'View performance metrics and statistics',
-    usage: '/metrics [show|errors|clear]',
-    crossPlatform: true,
-    handler: async () => 'metrics'
+    handler: async () => 'create'
   }
 ];
 

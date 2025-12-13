@@ -1,6 +1,6 @@
 {
   "name": "vibe-ai-cli",
-  "version": "8.0.0",
+  "version": "8.0.1",
   "description": "Ultimate AI Development Platform - 50+ Advanced Tools, Story Memory, Chat History, AI-Powered Analysis, Auto-Refactoring, Security Scanning",
   "main": "dist/cli/index.js",
   "bin": {
@@ -73,7 +73,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mk-knight23/vibe.git",
+    "url": "git+https://github.com/mk-knight23/vibe.git",
     "directory": "vibe-cli"
   },
   "bugs": {
@@ -84,18 +84,35 @@
     "node": ">=16.0.0"
   },
   "dependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/react-router-dom": "^5.3.3",
+    "axios": "^1.13.2",
     "chalk": "^5.3.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
     "fast-glob": "^3.3.2",
     "inquirer": "^11.1.0",
     "node-fetch": "^3.3.2",
     "ora": "^8.1.1",
     "picocolors": "^1.1.1",
-    "simple-git": "^3.27.0"
+    "react-router-dom": "^7.10.1",
+    "simple-git": "^3.27.0",
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
-    "@types/node": "^22.10.1",
+    "@types/node": "^22.19.2",
     "@vitest/coverage-v8": "^2.1.9",
+    "concurrently": "^9.2.1",
+    "nodemon": "^3.1.11",
     "typescript": "^5.7.2",
     "vitest": "^2.1.9"
-  }
+  },
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "type": "commonjs",
+  "types": "./dist/cli/index.d.ts"
 }

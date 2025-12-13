@@ -2,6 +2,21 @@
 
 All notable changes to VIBE CLI will be documented in this file.
 
+## [8.0.1] - 2025-12-14
+
+### Fixed
+- Shell command execution now streams output live
+- Project naming improved with better natural language parsing
+- Dangerous command blocking enhanced
+- VS Code terminal integration added
+- Centralized shell executor implemented
+- Documentation consolidated and cleaned up
+
+### Performance
+- Shell execution performance improved
+- Memory usage optimized
+- Test suite expanded to 121 tests
+
 ## [8.0.0] - 2025-12-06
 
 ### 🎉 Major Release - Revolutionary Memory System

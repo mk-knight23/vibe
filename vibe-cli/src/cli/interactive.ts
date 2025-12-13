@@ -9,6 +9,8 @@ import { executeBashCommands } from '../utils/bash-executor';
 import { handleCommand } from './command-handler';
 import { VIBE_SYSTEM_PROMPT, VERSION, DEFAULT_MODEL } from './system-prompt';
 import { MemoryManager } from '../core/memory';
+import { TerminalRenderer, StateType } from '../utils/terminal-renderer';
+import { executeShellCommand, ShellExecutionOptions } from '../core/shell-executor';
 
 const SYSTEM_PROMPT = VIBE_SYSTEM_PROMPT;
 const DANGEROUS_COMMANDS = ['rm -rf /', 'mkfs', 'killall', 'dd if=', 'format', ':(){:|:&};:'];
@@ -87,6 +89,29 @@ export async function startInteractive(client: ApiClient): Promise<void> {
       }
       
       memory.startTask(input);
+      memory.addChatMessage('user', input);
+      
+      // Intelligent model selection
+      const { selectBestModel, shouldSwitchModel } = await import('../core/model-selector');
+      const profile = selectBestModel(input, client.getProvider());
+      
+      if (shouldSwitchModel(profile, currentModel)) {
+        console.log(pc.gray(`Switching to ${profile.model} (${profile.reasoning})`));
+        client.setProvider(profile.provider as any);
+        currentModel = profile.model;
+      }
+      
+      // Check for intelligent project scaffolding
+      const { shouldScaffold, detectAndScaffold } = await import('../core/scaffolder');
+      if (shouldScaffold(input)) {
+        console.log(pc.cyan('\n🔨 Creating project...\n'));
+        const scaffolded = await detectAndScaffold(input, new TerminalRenderer(), memory);
+        if (scaffolded) {
+          console.log(pc.green('\n✓ Project created\n'));
+          continue;
+        }
+      }
+      
       lastResponse = await processUserInput(client, messages, currentModel, input, memory);
       
     } catch (error: any) {
@@ -102,17 +127,15 @@ export async function startInteractive(client: ApiClient): Promise<void> {
 }
 
 function showWelcomeBanner(): void {
+  const renderer = new TerminalRenderer();
   console.clear();
-  const width = 70;
-  console.log(pc.cyan('═'.repeat(width)));
-  console.log(pc.cyan('║') + ' '.repeat(width - 2) + pc.cyan('║'));
-  console.log(pc.cyan('║') + pc.bold(pc.white('   🎨 VIBE CLI v7.0.5')) + ' '.repeat(width - 25) + pc.cyan('║'));
-  console.log(pc.cyan('║') + pc.gray('   AI-Powered Development Platform') + ' '.repeat(width - 39) + pc.cyan('║'));
-  console.log(pc.cyan('║') + ' '.repeat(width - 2) + pc.cyan('║'));
-  console.log(pc.cyan('║') + pc.yellow('   🔥 Made by KAZI') + ' '.repeat(width - 22) + pc.cyan('║'));
-  console.log(pc.cyan('║') + pc.gray('   28 Tools | 4 Providers | 27+ Models') + ' '.repeat(width - 45) + pc.cyan('║'));
-  console.log(pc.cyan('║') + ' '.repeat(width - 2) + pc.cyan('║'));
-  console.log(pc.cyan('═'.repeat(width)));
+  renderer.header('🎨 VIBE CLI v8.0.0 - ULTIMATE EDITION');
+  console.log(pc.gray('   Revolutionary AI Development Platform'));
+  console.log(pc.gray('   Story Memory • Chat History • 36 Advanced Tools'));
+  console.log(pc.gray('   Streaming Output • Trust Signals • Multi-Step Execution'));
+  console.log();
+  console.log(pc.yellow('   🔥 Made by KAZI • Production Ready'));
+  renderer.divider();
   console.log();
 }
 
@@ -318,7 +341,8 @@ async function processUserInput(
   input: string,
   memory: MemoryManager
 ): Promise<string> {
-  
+
+  const renderer = new TerminalRenderer();
   const stats: OperationStats = {
     filesCreated: 0,
     shellCommands: 0,
@@ -326,9 +350,9 @@ async function processUserInput(
     errors: 0,
     startTime: Date.now()
   };
-  
+
   messages.push({ role: 'user', content: input });
-  
+
   // Inject memory context
   const memoryContext = memory.getMemoryContext();
   if (memoryContext) {
@@ -337,25 +361,17 @@ async function processUserInput(
       content: `# Persistent Memory\n${memoryContext}\n\nUse this memory to maintain context. Never ask for information already known.`
     });
   }
-  
+
   // Summarize if too many messages
   if (messages.length > 15) {
     const summarized = memory.summarizeOldMessages(messages);
     messages.length = 0;
     messages.push(...summarized);
   }
-  
-  const steps: Step[] = [
-    { name: 'Understanding request', status: 'pending', emoji: '🧠' },
-    { name: 'Planning response', status: 'pending', emoji: '📋' },
-    { name: 'Generating output', status: 'pending', emoji: '✨' }
-  ];
-  
-  showSteps(steps);
-  
-  steps[0].status = 'running';
-  updateSteps(steps);
-  
+
+  // Set initial state: Thinking
+  renderer.setState('thinking', 'Analyzing your request...');
+
   try {
     const toolSchemas = tools.map(t => ({
       type: 'function',
@@ -374,82 +390,213 @@ async function processUserInput(
         }
       }
     }));
-    
-    steps[0].status = 'success';
-    steps[1].status = 'running';
-    updateSteps(steps);
-    
+
+    // Transition to executing state
+    renderer.setState('executing', 'Planning and generating response...');
+
     const response = await client.chat(messages, currentModel, {
       temperature: 0.7,
       maxTokens: 4000,
-      tools: toolSchemas
+      tools: toolSchemas,
+      stream: true // Enable streaming
     });
-    
-    steps[1].status = 'success';
-    steps[2].status = 'running';
-    updateSteps(steps);
-    
+
     const assistantMessage = response.choices?.[0]?.message;
     if (!assistantMessage) throw new Error('No response from AI');
-    
+
     const reply = assistantMessage.content || '';
     const toolCalls = assistantMessage.tool_calls || [];
-    
+
     if (reply.includes('<|tool_call') && !toolCalls.length) {
-      steps[2].status = 'error';
-      updateSteps(steps);
+      renderer.setState('error', 'Function calling not supported');
       showFunctionCallingError();
       messages.push({ role: 'assistant', content: reply });
       return reply;
     }
-    
-    steps[2].status = 'success';
-    updateSteps(steps);
-    
-    console.log();
-    
+
+    // Start streaming AI response
+    if (reply) {
+      renderer.setState('done', 'Response generated');
+      renderer.startStreaming();
+
+      // Simulate streaming by chunking the response
+      const chunks = reply.split(/(?<=[.!?])\s+/);
+      for (const chunk of chunks) {
+        renderer.streamToken(chunk + ' ');
+        await sleep(10); // Small delay for natural streaming effect
+      }
+      renderer.endStreaming();
+    }
+
+    messages.push({ role: 'assistant', content: reply });
+
+    // Execute tools with full transparency
+    if (toolCalls.length > 0) {
+      renderer.setState('executing', 'Executing tools...');
+
+      for (const call of toolCalls) {
+        const tool = tools.find(t => t.name === call.function.name);
+        if (!tool) continue;
+
+        const args = JSON.parse(call.function.arguments);
+        const startTime = Date.now();
+
+        try {
+          const result = await executeTool(call.function.name, args);
+          const duration = Date.now() - startTime;
+
+          // Show trust signals
+          if (call.function.name === 'write_file') {
+            renderer.showFileOperation('write', args.file_path, true);
+            memory.onFileWrite(args.file_path, args.content);
+          } else if (call.function.name === 'read_file') {
+            renderer.showFileOperation('read', args.path, true);
+            memory.onFileRead(args.path, result);
+          } else if (call.function.name === 'run_shell_command') {
+            renderer.showCommandExecution(args.command, true, duration);
+            memory.onShellCommand(args.command, result);
+          } else {
+            renderer.showToolExecution(tool.displayName, args, true, duration);
+          }
+
+          stats.toolsExecuted++;
+          messages.push({
+            role: 'tool',
+            tool_call_id: call.id,
+            content: 'Success'
+          });
+
+        } catch (err: any) {
+          renderer.showToolExecution(tool.displayName, args, false);
+          stats.errors++;
+          memory.onError(`Tool ${call.function.name} failed: ${err.message}`);
+
+          messages.push({
+            role: 'tool',
+            tool_call_id: call.id,
+            content: `Error: ${err.message}`
+          });
+        }
+      }
+    }
+
+    // Handle project creation with trust signals
     const isProjectCreation = /\b(create|build|make|generate|scaffold)\b/i.test(input);
-    
     if (reply && isProjectCreation) {
       const files = parseFilesFromResponse(reply, 'project');
-      
+
       if (files.length > 0) {
-        await createFilesWithProgress(files, stats, memory);
+        renderer.setState('executing', 'Creating project files...');
+        for (const file of files) {
+          try {
+            await executeTool('write_file', { file_path: file.path, content: file.content });
+            renderer.showFileOperation('write', file.path, true);
+            stats.filesCreated++;
+            memory.onFileWrite(file.path, file.content);
+          } catch (err: any) {
+            renderer.showFileOperation('write', file.path, false);
+            stats.errors++;
+            memory.onError(`Failed to create ${file.path}: ${err.message}`);
+          }
+        }
       }
-      
+
+      // Handle shell commands with safety checks
       if (reply.includes('```bash') || reply.includes('```shell')) {
         const shouldExecute = await promptShellExecution(reply);
         if (shouldExecute) {
-          await executeShellWithProgress(reply, stats, memory);
+          renderer.setState('executing', 'Running setup commands...');
+          const bashBlocks = reply.match(/```(?:bash|shell|sh)\n([\s\S]*?)```/g) || [];
+
+          for (const block of bashBlocks) {
+            const commands = block.replace(/```(?:bash|shell|sh)\n/, '').replace(/```$/, '').trim().split('\n');
+
+            for (const cmd of commands) {
+              if (!cmd.trim()) continue;
+
+              if (isDangerousCommand(cmd)) {
+                renderer.status(`Blocked dangerous command: ${cmd}`, 'warning');
+                continue;
+              }
+
+              const startTime = Date.now();
+
+              // Show command execution start
+              renderer.status(`🔧 ${cmd}`, 'info');
+
+              try {
+                // Use centralized shell executor with live streaming
+                const result = await executeShellCommand(cmd, {
+                  cwd: input.includes('project') ? undefined : process.cwd(), // Use project dir if creating project
+                  timeout: 60000, // 60 second timeout
+                  streamOutput: true,
+                  onStdout: (data: string) => {
+                    // Stream stdout live to user
+                    process.stdout.write(data);
+                  },
+                  onStderr: (data: string) => {
+                    // Stream stderr live to user
+                    process.stderr.write(data);
+                  },
+                  onProgress: (progress) => {
+                    // Update UI with execution progress
+                    if (progress.status === 'completed') {
+                      renderer.showCommandExecution(cmd, progress.exitCode === 0, progress.duration);
+                    } else if (progress.status === 'failed') {
+                      renderer.showCommandExecution(cmd, false, progress.duration);
+                    }
+                  },
+                  retryCount: 1, // Retry once on failure
+                  retryDelay: 1000
+                });
+
+                if (result.success) {
+                  stats.shellCommands++;
+                  memory.onShellCommand(cmd, result.stdout || 'success');
+                } else {
+                  stats.errors++;
+                  memory.onError(`Shell command failed: ${cmd} - ${result.error || 'Unknown error'}`);
+                }
+              } catch (err: any) {
+                renderer.showCommandExecution(cmd, false);
+                stats.errors++;
+                memory.onError(`Shell command failed: ${cmd} - ${err.message}`);
+              }
+            }
+          }
         }
       }
-    } else if (reply) {
-      await streamAIResponse(reply);
     }
-    
-    messages.push({ role: 'assistant', content: reply });
-    
-    if (toolCalls.length > 0) {
-      await executeToolCallsWithTimeline(toolCalls, messages, client, currentModel, toolSchemas, stats, memory);
-    }
-    
+
     // Remove memory context message after processing
     const memoryIndex = messages.findIndex(m => m.role === 'system' && m.content.includes('# Persistent Memory'));
     if (memoryIndex > 0) {
       messages.splice(memoryIndex, 1);
     }
-    
-    showOperationSummary(stats);
-    await showFollowUpSuggestions(input);
-    
+
+    // Final verification state
+    renderer.setState('verifying', 'Verifying results...');
+    await sleep(500); // Brief verification delay
+    renderer.setState('done', 'Complete');
+
+    // Show operation summary
+    const duration = ((Date.now() - stats.startTime) / 1000).toFixed(2);
+    renderer.header('Operation Summary');
+    console.log(`📁 Files created: ${stats.filesCreated}`);
+    console.log(`🔧 Commands executed: ${stats.shellCommands}`);
+    console.log(`🛠️  Tools used: ${stats.toolsExecuted}`);
+    console.log(`❌ Errors: ${stats.errors}`);
+    console.log(`⏱️  Duration: ${duration}s`);
+    renderer.divider();
+
     return reply;
-    
+
   } catch (error: any) {
-    steps.forEach(s => { if (s.status === 'running') s.status = 'error'; });
-    updateSteps(steps);
+    renderer.setState('error', error.message);
     stats.errors++;
     memory.onError(error.message);
-    showError('Request Failed', error.message, 'Check connection or try /provider');
+    renderer.status(`Request failed: ${error.message}`, 'error');
+    renderer.status('Try /provider to switch providers', 'info');
     return '';
   }
 }

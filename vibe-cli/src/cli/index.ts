@@ -17,7 +17,7 @@
 import { startInteractive } from './interactive';
 import { ApiClient } from '../core/api';
 
-const VERSION = '8.0.0';
+const VERSION = '8.0.1';
 
 const BANNER = `
 ╔═══════════════════════════════════════════════════════════╗
@@ -86,4 +86,3 @@ Examples:
 }
 
 main();
-

@@ -1,4 +1,4 @@
-# VIBE CLI v8.0.0
+# VIBE CLI v8.0.1
 
 **Revolutionary AI Development Platform** - 36 Tools | 14 Categories | 3-Layer Memory | 8 Advanced AI Tools
 
@@ -317,7 +317,7 @@ Thanks to all contributors and users who helped shape v8.0.0!
 
 ---
 
-**Version:** 8.0.0  
-**Release Date:** December 6, 2025  
-**Status:** ✅ Production Ready  
-**Tests:** 103/103 Passing
+**Version:** 8.0.1
+**Release Date:** December 14, 2025
+**Status:** ✅ Production Ready
+**Tests:** 121/121 Passing

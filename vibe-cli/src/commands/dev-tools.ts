@@ -1,10 +1,7 @@
 // Development Tools Suite
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import { existsSync } from 'fs';
 import { join } from 'path';
-
-const execAsync = promisify(exec);
+import { executeShellCommand } from '../core/shell-executor';
 
 export class DevTools {
   async lint(path: string = '.', fix: boolean = false): Promise<string> {
@@ -17,10 +14,13 @@ export class DevTools {
     for (const linter of linters) {
       if (await this.hasCommand(linter.cmd)) {
         try {
-          const { stdout } = await execAsync(`${linter.cmd} ${linter.args} ${path}`);
-          return stdout;
+          const result = await executeShellCommand(`${linter.cmd} ${linter.args} ${path}`, {
+            cwd: process.cwd(),
+            timeout: 30000
+          });
+          return result.stdout || result.stderr || 'Linting complete';
         } catch (err: any) {
-          return err.stdout || err.message;
+          return err.message;
         }
       }
     }
@@ -38,10 +38,13 @@ export class DevTools {
     for (const formatter of formatters) {
       if (await this.hasCommand(formatter.cmd)) {
         try {
-          const { stdout } = await execAsync(`${formatter.cmd} ${formatter.args} ${path}`);
-          return stdout || 'Formatting complete';
+          const result = await executeShellCommand(`${formatter.cmd} ${formatter.args} ${path}`, {
+            cwd: process.cwd(),
+            timeout: 30000
+          });
+          return result.stdout || result.stderr || 'Formatting complete';
         } catch (err: any) {
-          return err.stdout || err.message;
+          return err.message;
         }
       }
     }
@@ -60,12 +63,13 @@ export class DevTools {
     for (const runner of testRunners) {
       if (await this.hasCommand(runner.cmd)) {
         try {
-          const { stdout, stderr } = await execAsync(`${runner.cmd} ${runner.args}`, {
+          const result = await executeShellCommand(`${runner.cmd} ${runner.args}`, {
+            cwd: process.cwd(),
             timeout: 60000
           });
-          return stdout + stderr;
+          return (result.stdout + result.stderr) || 'Tests completed';
         } catch (err: any) {
-          return err.stdout || err.message;
+          return err.message;
         }
       }
     }
@@ -85,12 +89,13 @@ export class DevTools {
     for (const builder of builders) {
       if (await this.hasCommand(builder.cmd)) {
         try {
-          const { stdout, stderr } = await execAsync(`${builder.cmd} ${builder.args}`, {
+          const result = await executeShellCommand(`${builder.cmd} ${builder.args}`, {
+            cwd: process.cwd(),
             timeout: 300000 // 5 minutes
           });
-          return stdout + stderr || 'Build complete';
+          return (result.stdout + result.stderr) || 'Build complete';
         } catch (err: any) {
-          return err.stdout || err.message;
+          return err.message;
         }
       }
     }
@@ -108,7 +113,14 @@ export class DevTools {
     for (const server of servers) {
       if (await this.hasCommand(server.cmd)) {
         console.log(`Starting dev server on port ${port}...`);
-        exec(`${server.cmd} ${server.args}`);
+        try {
+          await executeShellCommand(`${server.cmd} ${server.args}`, {
+            cwd: process.cwd(),
+            timeout: 0 // No timeout for servers
+          });
+        } catch (error) {
+          console.error(`Server error: ${error}`);
+        }
         return;
       }
     }
@@ -118,8 +130,11 @@ export class DevTools {
 
   private async hasCommand(cmd: string): Promise<boolean> {
     try {
-      await execAsync(`which ${cmd}`);
-      return true;
+      const result = await executeShellCommand(`which ${cmd}`, {
+        cwd: process.cwd(),
+        timeout: 5000
+      });
+      return result.exitCode === 0;
     } catch {
       return false;
     }

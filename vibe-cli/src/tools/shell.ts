@@ -21,7 +21,8 @@ interface ShellResult {
 export async function runShellCommand(
   command: string,
   description?: string,
-  directory?: string
+  directory?: string,
+  streamOutput?: (type: 'stdout' | 'stderr', data: string) => void
 ): Promise<ShellResult> {
   // Safety check for destructive commands
   if (isDestructiveCommand(command)) {
@@ -34,11 +35,11 @@ export async function runShellCommand(
       exitCode: 1
     };
   }
-  
+
   const osType = detectOS();
   const cwd = directory ? path.resolve(process.cwd(), directory) : process.cwd();
   const sandboxed = false;
-  
+
   const result: ShellResult = {
     command,
     directory: cwd,
@@ -66,7 +67,7 @@ export async function runShellCommand(
         stdio: 'ignore',
         env: { ...process.env, VIBE_CLI: '1' }
       });
-      
+
       child.unref();
       result.backgroundPIDs = [child.pid || 0];
       result.stdout = `Background process started with PID: ${child.pid}`;
@@ -76,15 +77,61 @@ export async function runShellCommand(
         result.error = 'Sandbox not available';
         result.exitCode = 1;
       } else {
-        const { stdout, stderr } = await execAsync(command, {
+        // Use spawn for streaming output
+        const child = spawn(command, [], {
           cwd,
-          maxBuffer: 10 * 1024 * 1024,
+          shell: true,
           env: { ...process.env, VIBE_CLI: '1' }
         });
-        
-        result.stdout = stdout;
-        result.stderr = stderr;
-        result.exitCode = 0;
+
+        let stdout = '';
+        let stderr = '';
+
+        // Stream output if callback provided
+        if (streamOutput) {
+          child.stdout?.on('data', (data) => {
+            const chunk = data.toString();
+            stdout += chunk;
+            streamOutput('stdout', chunk);
+          });
+
+          child.stderr?.on('data', (data) => {
+            const chunk = data.toString();
+            stderr += chunk;
+            streamOutput('stderr', chunk);
+          });
+        } else {
+          // Buffer output if no streaming callback
+          child.stdout?.on('data', (data) => {
+            stdout += data.toString();
+          });
+
+          child.stderr?.on('data', (data) => {
+            stderr += data.toString();
+          });
+        }
+
+        // Wait for process to complete
+        await new Promise((resolve, reject) => {
+          child.on('close', (code) => {
+            result.exitCode = code;
+            result.stdout = stdout;
+            result.stderr = stderr;
+            resolve(code);
+          });
+
+          child.on('error', (err) => {
+            result.error = err.message;
+            result.exitCode = 1;
+            reject(err);
+          });
+        });
+
+        // If no streaming, set buffered output
+        if (!streamOutput) {
+          result.stdout = stdout;
+          result.stderr = stderr;
+        }
       }
     }
   } catch (err: any) {

@@ -41,6 +41,16 @@ interface StoryMemory {
   timeline: Array<{ date: string; event: string }>;
 }
 
+interface SessionState {
+  sessionId: string;
+  startTime: number;
+  lastActivity: number;
+  activeTasks: string[];
+  currentContext: string;
+  sessionGoals: string[];
+  completedInSession: string[];
+}
+
 interface ConversationState {
   keyPoints: string[];
   decisions: string[];
@@ -54,6 +64,7 @@ interface ConversationState {
   userPreferences: Record<string, any>;
   codePatterns: string[];
   frequentCommands: Record<string, number>;
+  sessionState: SessionState;
 }
 
 export class MemoryManager {
@@ -69,7 +80,7 @@ export class MemoryManager {
   }
 
   private loadState(): ConversationState {
-    const defaultState = {
+    const defaultState: ConversationState = {
       keyPoints: [],
       decisions: [],
       currentArchitecture: {},
@@ -98,7 +109,16 @@ export class MemoryManager {
       },
       userPreferences: {},
       codePatterns: [],
-      frequentCommands: {}
+      frequentCommands: {},
+      sessionState: {
+        sessionId: this.generateSessionId(),
+        startTime: Date.now(),
+        lastActivity: Date.now(),
+        activeTasks: [],
+        currentContext: '',
+        sessionGoals: [],
+        completedInSession: []
+      }
     };
 
     try {
@@ -313,9 +333,43 @@ export class MemoryManager {
 
   searchChatHistory(query: string): ChatMessage[] {
     const lowerQuery = query.toLowerCase();
-    return this.state.chatHistory.filter(msg => 
-      msg.content.toLowerCase().includes(lowerQuery)
-    ).slice(-10);
+    const queryTerms = lowerQuery.split(/\s+/).filter(t => t.length > 2);
+    
+    const scored = this.state.chatHistory.map(msg => {
+      const content = msg.content.toLowerCase();
+      let score = 0;
+      
+      // Exact phrase match (high score)
+      if (content.includes(lowerQuery)) score += 100;
+      
+      // Term frequency scoring (only if at least one term matches)
+      let termMatches = 0;
+      queryTerms.forEach(term => {
+        const matches = (content.match(new RegExp(term, 'g')) || []).length;
+        if (matches > 0) {
+          termMatches++;
+          score += matches * 2;
+        }
+      });
+      
+      // Require at least one term match
+      if (termMatches === 0) score = 0;
+      
+      // Recency bonus (only for matches)
+      if (score > 0) {
+        const age = Date.now() - msg.timestamp;
+        const recencyBonus = Math.max(0, 5 - (age / (1000 * 60 * 60 * 24)));
+        score += recencyBonus;
+      }
+      
+      return { msg, score };
+    });
+    
+    return scored
+      .filter(s => s.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10)
+      .map(s => s.msg);
   }
 
   addKeyPoint(point: string): void {
@@ -465,12 +519,82 @@ export class MemoryManager {
       },
       userPreferences: {},
       codePatterns: [],
-      frequentCommands: {}
+      frequentCommands: {},
+      sessionState: {
+        sessionId: this.generateSessionId(),
+        startTime: Date.now(),
+        lastActivity: Date.now(),
+        activeTasks: [],
+        currentContext: '',
+        sessionGoals: [],
+        completedInSession: []
+      }
     };
     this.saveState();
   }
 
   getState(): ConversationState {
     return this.state;
+  }
+
+  private generateSessionId(): string {
+    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  // Session continuity methods
+  startSession(): void {
+    this.state.sessionState = {
+      sessionId: this.generateSessionId(),
+      startTime: Date.now(),
+      lastActivity: Date.now(),
+      activeTasks: [],
+      currentContext: '',
+      sessionGoals: [],
+      completedInSession: []
+    };
+    this.saveState();
+  }
+
+  updateSessionActivity(): void {
+    this.state.sessionState.lastActivity = Date.now();
+    this.saveState();
+  }
+
+  addSessionGoal(goal: string): void {
+    if (!this.state.sessionState.sessionGoals.includes(goal)) {
+      this.state.sessionState.sessionGoals.push(goal);
+      this.saveState();
+    }
+  }
+
+  completeSessionTask(task: string): void {
+    if (!this.state.sessionState.completedInSession.includes(task)) {
+      this.state.sessionState.completedInSession.push(task);
+      this.saveState();
+    }
+  }
+
+  getSessionSummary(): string {
+    const session = this.state.sessionState;
+    const duration = (Date.now() - session.startTime) / 1000 / 60; // minutes
+
+    const parts: string[] = [];
+    parts.push(`# Session Summary (${duration.toFixed(1)} minutes)`);
+    parts.push(`Session ID: ${session.sessionId}`);
+
+    if (session.sessionGoals.length > 0) {
+      parts.push(`\nGoals: ${session.sessionGoals.join(', ')}`);
+    }
+
+    if (session.completedInSession.length > 0) {
+      parts.push(`Completed: ${session.completedInSession.length} tasks`);
+      session.completedInSession.forEach(task => parts.push(`✓ ${task}`));
+    }
+
+    if (session.activeTasks.length > 0) {
+      parts.push(`Active: ${session.activeTasks.join(', ')}`);
+    }
+
+    return parts.join('\n');
   }
 }

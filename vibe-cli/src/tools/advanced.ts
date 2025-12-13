@@ -43,25 +43,66 @@ export async function smartRefactor(filePath: string, type: 'extract' | 'inline'
   try {
     const content = fs.readFileSync(filePath, 'utf-8');
     let result = content;
+    let changed = false;
     
     if (type === 'extract') {
       result = extractDuplicates(content);
+      changed = result !== content;
     } else if (type === 'inline') {
       result = inlineSmallFunctions(content);
+      changed = result !== content;
     }
     
-    return `Refactored ${filePath}:\n${result.substring(0, 500)}...`;
+    if (changed) {
+      fs.writeFileSync(filePath, result);
+      return `Refactored ${filePath} (${type}): Changes applied`;
+    }
+    
+    return `Refactored ${filePath} (${type}): No changes needed`;
   } catch (error: any) {
     return `Error: ${error.message}`;
   }
 }
 
 function extractDuplicates(code: string): string {
-  return code;
+  const lines = code.split('\n');
+  const duplicates = new Map<string, number[]>();
+  
+  lines.forEach((line, idx) => {
+    const trimmed = line.trim();
+    if (trimmed.length > 30 && !trimmed.startsWith('//') && !trimmed.startsWith('*')) {
+      if (!duplicates.has(trimmed)) duplicates.set(trimmed, []);
+      duplicates.get(trimmed)!.push(idx);
+    }
+  });
+  
+  const extracted: string[] = [];
+  duplicates.forEach((indices, line) => {
+    if (indices.length >= 3) {
+      const funcName = `extracted_${Math.random().toString(36).substr(2, 9)}`;
+      extracted.push(`function ${funcName}() { ${line} }`);
+      indices.forEach(idx => lines[idx] = `  ${funcName}();`);
+    }
+  });
+  
+  return extracted.length > 0 ? extracted.join('\n') + '\n\n' + lines.join('\n') : code;
 }
 
 function inlineSmallFunctions(code: string): string {
-  return code;
+  const funcRegex = /function\s+(\w+)\s*\(\)\s*{\s*([^}]{1,50})\s*}/g;
+  const matches = Array.from(code.matchAll(funcRegex));
+  
+  let result = code;
+  matches.forEach(match => {
+    const [fullMatch, funcName, body] = match;
+    const callRegex = new RegExp(`\\b${funcName}\\(\\)`, 'g');
+    if ((result.match(callRegex) || []).length <= 2) {
+      result = result.replace(fullMatch, '');
+      result = result.replace(callRegex, body.trim());
+    }
+  });
+  
+  return result;
 }
 
 export async function generateTests(filePath: string, framework: string = 'vitest'): Promise<string> {
