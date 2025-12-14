@@ -2,6 +2,11 @@
 import * as vscode from "vscode";
 import * as fs from 'fs';
 import * as path from 'path';
+import { StreamingViewProvider } from './ui/streaming-view-provider';
+import { AIHoverProvider } from './providers/hover-provider';
+import { CustomInstructionsPanel } from './ui/custom-instructions-panel';
+import { refactorMultiFile } from './commands/refactor-multi-file';
+import { ExtensionOrchestrationAdapter } from './core/shared-orchestration';
 
 // Memory system for CLI parity
 interface MemoryEntry {
@@ -4642,6 +4647,12 @@ export function activate(context: vscode.ExtensionContext) {
   const permissions = new PermissionService();
   const fileActions = new FileActionsService(permissions);
 
+  // Initialize v5.0 services
+  const streamingProvider = new StreamingViewProvider(context.extensionUri);
+  const hoverProvider = new AIHoverProvider();
+  const instructionsPanel = new CustomInstructionsPanel();
+  const orchestrationAdapter = new ExtensionOrchestrationAdapter();
+
   // Initialize v5 services
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
   const config = vscode.workspace.getConfiguration('vibe');
@@ -4691,6 +4702,22 @@ export function activate(context: vscode.ExtensionContext) {
   );
   VibeView.currentView = provider;
 
+  // Register webview providers (v5.0)
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      StreamingViewProvider.viewType,
+      streamingProvider
+    )
+  );
+
+  // Register hover provider (v5.0)
+  context.subscriptions.push(
+    vscode.languages.registerHoverProvider(
+      { scheme: 'file', language: '*' },
+      hoverProvider
+    )
+  );
+
   // Register commands
   context.subscriptions.push(
     vscode.commands.registerCommand("vibe.openChat", () => {
@@ -4732,6 +4759,13 @@ export function activate(context: vscode.ExtensionContext) {
     }),
 
     // V5.0 NEW COMMANDS
+    vscode.commands.registerCommand("vibe.multiFileRefactor", refactorMultiFile),
+    vscode.commands.registerCommand("vibe.customInstructions", () => instructionsPanel.show()),
+    vscode.commands.registerCommand("vibe.clearHoverCache", () => hoverProvider.clearCache()),
+    vscode.commands.registerCommand("vibe.showStreaming", () => {
+      vscode.commands.executeCommand('vibe.streamingView.focus');
+    }),
+    
     vscode.commands.registerCommand("vibe.runShellCommand", async () => {
       const command = await vscode.window.showInputBox({ prompt: 'Enter shell command' });
       if (!command) return;
