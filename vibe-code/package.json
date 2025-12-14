@@ -2,8 +2,8 @@
   "name": "vibe-vscode",
   "displayName": "Vibe VS Code - Autonomous AI Coding",
   "description": "Fully autonomous AI coding environment with 4 providers, filesystem CRUD, shell execution, project generators, runtime sandbox, and agent mode. Like Claude Desktop + Cursor + Windsurf combined.",
-  "version": "4.0.0",
-  "publisher": "mktech",
+  "version": "4.0.1",
+  "publisher": "vibe-ai",
   "repository": {
     "type": "git",
     "url": "https://github.com/mk-knight23/vibe"
@@ -13,7 +13,7 @@
   },
   "homepage": "https://github.com/mk-knight23/vibe#readme",
   "engines": {
-    "vscode": "^1.95.0"
+    "vscode": "^1.107.0"
   },
   "categories": [
     "Other",
@@ -41,17 +41,16 @@
   "scripts": {
     "compile": "rimraf dist && tsc -p ./tsconfig.json",
     "watch": "tsc -p ./tsconfig.json -w",
-    "package": "vsce package --no-dependencies",
+    "package": "npx @vscode/vsce package --no-dependencies",
     "lint": "echo \"No lint configured\""
   },
   "devDependencies": {
-    "@types/vscode": "^1.94.0",
-    "@types/node": "^22.7.5",
-    "typescript": "^5.6.3",
-    "rimraf": "^6.0.1",
-    "vsce": "^2.15.0"
+    "@types/node": "^25.0.2",
+    "@types/vscode": "^1.107.0",
+    "rimraf": "^6.1.2",
+    "typescript": "^5.7.2",
+    "@vscode/vsce": "^3.2.1"
   },
-  "dependencies": {},
   "activationEvents": [
     "onStartupFinished"
   ],
@@ -217,7 +216,12 @@
         },
         "vibe.provider": {
           "type": "string",
-          "enum": ["openrouter", "megallm", "agentrouter", "routeway"],
+          "enum": [
+            "openrouter",
+            "megallm",
+            "agentrouter",
+            "routeway"
+          ],
           "default": "megallm",
           "markdownDescription": "Primary AI provider (automatic fallback enabled)"
         },
