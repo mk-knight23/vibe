@@ -118,7 +118,7 @@ export async function startInteractive(client: ApiClient): Promise<void> {
 function showWelcomeBanner(): void {
   const renderer = new TerminalRenderer();
   console.clear();
-  renderer.header('🎨 VIBE CLI v8.0.0 - ULTIMATE EDITION');
+  renderer.header('🎨 VIBE CLI v9.0.0 - ULTIMATE EDITION');
   console.log(pc.gray('   Revolutionary AI Development Platform'));
   console.log(pc.gray('   Story Memory • Chat History • 36 Advanced Tools'));
   console.log(pc.gray('   Streaming Output • Trust Signals • Multi-Step Execution'));

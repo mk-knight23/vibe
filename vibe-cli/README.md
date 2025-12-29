@@ -1,6 +1,6 @@
 # VIBE CLI - Terminal AI Assistant
 
-**Version 8.0.2** | **36 Tools** | **14 Categories** | **3-Layer Memory** | **8 Advanced AI Tools**
+**Version 9.0.0** | **36 Tools** | **14 Categories** | **3-Layer Memory** | **8 Advanced AI Tools**
 
 [![npm version](https://badge.fury.io/js/vibe-ai-cli.svg)](https://www.npmjs.com/package/vibe-ai-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -511,4 +511,4 @@ MIT © VIBE Team
 
 ---
 
-**Version:** 8.0.2 | **Status:** Production Ready | **Tests:** 142/142 Passing
+**Version:** 9.0.0 | **Status:** Production Ready | **Tests:** 142/142 Passing

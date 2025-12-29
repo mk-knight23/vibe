@@ -3,6 +3,13 @@ import { ApiClient } from '../core/api';
 import { commands, findCommand, getCommandsByCategory } from '../commands/registry';
 import { agentCommand } from '../commands/misc';
 import { tools } from '../tools';
+import { getHealthStatus, formatHealthStatus } from '../core/health';
+import { 
+  getSecurityLists, 
+  isDryRun, 
+  AuditLogger,
+  getRiskIndicator 
+} from '../core/security';
 
 export async function handleCommand(
   input: string,
@@ -12,6 +19,19 @@ export async function handleCommand(
   const parts = input.slice(1).trim().split(' ');
   const cmdName = parts[0].toLowerCase();
   const args = parts.slice(1);
+
+  // Handle health command directly (not in registry)
+  if (cmdName === 'health') {
+    const health = await getHealthStatus();
+    console.log('\n' + formatHealthStatus(health) + '\n');
+    return;
+  }
+
+  // Handle security command
+  if (cmdName === 'security') {
+    showSecurityStatus(args[0]);
+    return;
+  }
 
   const command = findCommand(cmdName);
   
@@ -35,7 +55,7 @@ export async function handleCommand(
       return 'clear';
     
     case 'version':
-      console.log(pc.cyan('\nVIBE CLI v8.0.0'));
+      console.log(pc.cyan('\nVIBE CLI v9.0.0'));
       console.log(pc.gray('36 Tools | 4 Providers | 27+ Models\n'));
       break;
     
@@ -182,7 +202,7 @@ function showHelp(specificCommand?: string): void {
   }
 
   console.log(`
-${pc.bold(pc.cyan('VIBE CLI v8.0.0'))}
+${pc.bold(pc.cyan('VIBE CLI v9.0.0'))}
 ${pc.gray('36 Tools | 4 Providers | 27+ Models')}
 
 ${pc.bold('BASIC')}
@@ -222,4 +242,69 @@ function showAllTools(): void {
     toolList.forEach(tool => console.log(`  ${pc.gray(tool)}`));
     console.log();
   });
+}
+
+function showSecurityStatus(subcommand?: string): void {
+  const lists = getSecurityLists();
+  const dryRun = isDryRun();
+  const logger = new AuditLogger();
+  const recentAudit = logger.getRecent(10);
+
+  console.log(`\n${pc.bold(pc.cyan('🔒 SECURITY STATUS'))}\n`);
+  
+  // Mode
+  console.log(pc.bold('Mode:'));
+  console.log(`  ${dryRun ? pc.yellow('🔍 DRY-RUN (write operations blocked)') : pc.green('🟢 NORMAL')}`);
+  console.log();
+
+  if (subcommand === 'audit') {
+    // Show audit log
+    console.log(pc.bold('Recent Audit Log:'));
+    if (recentAudit.length === 0) {
+      console.log(pc.gray('  No audit entries'));
+    } else {
+      recentAudit.slice(0, 10).forEach(entry => {
+        const indicator = getRiskIndicator(entry.riskLevel);
+        const time = new Date(entry.timestamp).toLocaleTimeString();
+        console.log(`  ${indicator} [${time}] ${entry.action} ${entry.command || ''}`);
+      });
+    }
+    console.log();
+    return;
+  }
+
+  if (subcommand === 'lists') {
+    // Show allow/deny lists
+    console.log(pc.bold('Allowed Commands (always safe):'));
+    lists.allowedCommands.slice(0, 10).forEach(cmd => {
+      console.log(`  ${pc.green('✓')} ${cmd}`);
+    });
+    console.log(pc.gray(`  ... and ${lists.allowedCommands.length - 10} more`));
+    console.log();
+    return;
+  }
+
+  // Default: show summary
+  console.log(pc.bold('Risk Levels:'));
+  console.log(`  ${getRiskIndicator('safe')} SAFE - Read-only, no approval needed`);
+  console.log(`  ${getRiskIndicator('low')} LOW - Minor changes, approval recommended`);
+  console.log(`  ${getRiskIndicator('medium')} MEDIUM - Write operations, approval required`);
+  console.log(`  ${getRiskIndicator('high')} HIGH - Destructive operations, explicit approval`);
+  console.log(`  ${getRiskIndicator('blocked')} BLOCKED - Never allowed`);
+  console.log();
+
+  console.log(pc.bold('Operation Types:'));
+  console.log(`  📖 READ (${lists.readOperations.length} tools) - No side effects`);
+  console.log(`  ✏️  WRITE (${lists.writeOperations.length} tools) - Has side effects`);
+  console.log();
+
+  console.log(pc.bold('Commands:'));
+  console.log(`  ${pc.cyan('/security audit')} - View recent audit log`);
+  console.log(`  ${pc.cyan('/security lists')} - View allow/deny lists`);
+  console.log();
+
+  console.log(pc.bold('Environment:'));
+  console.log(`  VIBE_DRY_RUN=${dryRun ? 'true' : 'false'} - ${dryRun ? 'Write ops blocked' : 'Normal mode'}`);
+  console.log(`  VIBE_AUDIT=${process.env.VIBE_AUDIT !== 'false' ? 'true' : 'false'} - Audit logging`);
+  console.log();
 }

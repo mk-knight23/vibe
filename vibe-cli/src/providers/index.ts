@@ -67,12 +67,13 @@ export interface ProjectContext {
   language?: string;
 }
 
-// Default API keys (free tier)
+// API keys should be set via environment variables only
+// DO NOT hardcode keys - use OPENROUTER_API_KEY, MEGALLM_API_KEY, etc.
 export const DEFAULT_KEYS = {
-  openrouter: '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',
-  megallm: 'sk-mega-0eaa0b2c2bae3ced6afca8651cfbbce07927e231e4119068f7f7867c20cdc820',
-  agentrouter: 'sk-WXLlCAeAaDCeEjMWCBo7sqXGPOF1HrYEDm0JFBDXP3tEiERw',
-  routeway: 'sk-LeRlb8aww5YXvdP57hnVw07xmIA2c3FvfeLvPhbmFU14osMn'
+  openrouter: process.env.OPENROUTER_API_KEY || '',
+  megallm: process.env.MEGALLM_API_KEY || '',
+  agentrouter: process.env.AGENTROUTER_API_KEY || '',
+  routeway: process.env.ROUTEWAY_API_KEY || ''
 };
 
 export const PROVIDERS = {

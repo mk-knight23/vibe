@@ -1,0 +1,31 @@
+{
+  "name": "vibe-ecosystem",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VIBE AI Development Ecosystem - CLI, VS Code Extension, Web Documentation",
+  "workspaces": [
+    "vibe-cli",
+    "vibe-code",
+    "vibe-web"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "build:cli": "npm run build --workspace=vibe-cli",
+    "build:extension": "npm run compile --workspace=vibe-code",
+    "build:web": "npm run build --workspace=vibe-web",
+    "test": "npm run test --workspace=vibe-cli && npm run test --workspace=vibe-code",
+    "test:cli": "npm run test --workspace=vibe-cli",
+    "test:extension": "npm run test --workspace=vibe-code",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "clean": "rm -rf vibe-*/node_modules vibe-*/dist",
+    "health": "./scripts/health-check.sh",
+    "release": "./scripts/release.sh",
+    "release:cli": "./scripts/release.sh cli",
+    "release:extension": "./scripts/release.sh extension"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "KAZI",
+  "license": "MIT"
+}

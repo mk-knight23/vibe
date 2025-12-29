@@ -6,7 +6,18 @@ export const logger = {
   error: (msg: string) => console.error(pc.red('✗'), msg),
   warn: (msg: string) => console.warn(pc.yellow('⚠'), msg),
   debug: (msg: string) => process.env.DEBUG && console.log(pc.gray('⚙'), msg),
-  
+
+  log: (level: 'info' | 'success' | 'error' | 'warn' | 'debug', data: any, message?: string) => {
+    const timestamp = new Date().toISOString();
+    const logEntry = {
+      timestamp,
+      level,
+      message: message || '',
+      data
+    };
+    console.log(JSON.stringify(logEntry));
+  },
+
   box: (title: string, content: string) => {
     const width = 60;
     const line = '─'.repeat(width);

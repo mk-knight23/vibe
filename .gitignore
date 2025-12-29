@@ -79,4 +79,6 @@ pnpm-lock.yaml
 /vibe-cli/an/
 /vibe-cli/api/
 /vibe-cli/node/
+/vibe-cli/generated-project/
+/vibe-cli/test-temp/
 

@@ -1,58 +1,77 @@
 #!/bin/bash
+# VIBE Ecosystem Health Check
+# Validates all products build and test successfully
 
-# VIBE Ecosystem Health Monitor
 set -e
 
-GREEN='\033[0;32m'
+echo "🏥 VIBE Health Check"
+echo "===================="
+echo ""
+
 RED='\033[0;31m'
+GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-echo "🔍 VIBE Ecosystem Health Check"
-echo "=============================="
+FAILED=0
 
-# Check CLI
-echo -e "${YELLOW}CLI v9.0.0:${NC}"
+# CLI Health
+echo -e "${YELLOW}Checking CLI...${NC}"
 cd vibe-cli
-if npm test --silent > /dev/null 2>&1; then
-    echo -e "  ✅ Tests: 143 passing"
+if npm run build > /dev/null 2>&1 && npm test > /dev/null 2>&1; then
+  TESTS=$(npm test 2>&1 | grep -oE '[0-9]+ passed' | head -1)
+  echo -e "${GREEN}✓ CLI: Build OK, $TESTS${NC}"
 else
-    echo -e "  ❌ Tests: Failed"
-fi
-
-if npm run build --silent > /dev/null 2>&1; then
-    echo -e "  ✅ Build: Success"
-else
-    echo -e "  ❌ Build: Failed"
+  echo -e "${RED}✗ CLI: FAILED${NC}"
+  FAILED=1
 fi
 cd ..
 
-# Check Extension
-echo -e "${YELLOW}Extension v5.0.0:${NC}"
+# Extension Health
+echo -e "${YELLOW}Checking Extension...${NC}"
 cd vibe-code
-if npm run compile --silent > /dev/null 2>&1; then
-    echo -e "  ✅ Compile: Success"
+if npm run compile > /dev/null 2>&1 && npm test > /dev/null 2>&1; then
+  TESTS=$(npm test 2>&1 | grep -oE '[0-9]+ passed' | head -1)
+  echo -e "${GREEN}✓ Extension: Build OK, $TESTS${NC}"
 else
-    echo -e "  ❌ Compile: Failed"
+  echo -e "${RED}✗ Extension: FAILED${NC}"
+  FAILED=1
 fi
 cd ..
 
-# Check Web
-echo -e "${YELLOW}Web v2.0.0:${NC}"
+# Web Health
+echo -e "${YELLOW}Checking Web...${NC}"
 cd vibe-web
-if npm run build --silent > /dev/null 2>&1; then
-    echo -e "  ✅ Build: Success"
+if npm run build > /dev/null 2>&1; then
+  SIZE=$(du -sh dist | cut -f1)
+  echo -e "${GREEN}✓ Web: Build OK, $SIZE${NC}"
 else
-    echo -e "  ❌ Build: Failed"
+  echo -e "${RED}✗ Web: FAILED${NC}"
+  FAILED=1
 fi
 cd ..
 
-# Compatibility Check
-echo -e "${YELLOW}Compatibility:${NC}"
-if [[ -f "ecosystem-compatibility.json" ]]; then
-    echo -e "  ✅ Matrix: Available"
-else
-    echo -e "  ❌ Matrix: Missing"
-fi
+# Security Audit
+echo ""
+echo -e "${YELLOW}Security Audit...${NC}"
+VULNS=0
+for dir in vibe-cli vibe-code vibe-web; do
+  cd $dir
+  AUDIT=$(npm audit 2>&1 | grep -oE '[0-9]+ vulnerabilities' || echo "0 vulnerabilities")
+  if [[ "$AUDIT" != "0 vulnerabilities" ]]; then
+    echo -e "${YELLOW}⚠ $dir: $AUDIT${NC}"
+  fi
+  cd ..
+done
+echo -e "${GREEN}✓ Security audit complete${NC}"
 
-echo -e "${GREEN}Health check complete${NC}"
+# Summary
+echo ""
+echo "===================="
+if [ $FAILED -eq 0 ]; then
+  echo -e "${GREEN}✅ All systems healthy${NC}"
+  exit 0
+else
+  echo -e "${RED}❌ Some checks failed${NC}"
+  exit 1
+fi

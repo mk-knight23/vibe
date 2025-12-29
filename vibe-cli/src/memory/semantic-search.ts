@@ -101,31 +101,30 @@ export class VectorStore {
           return;
         }
 
-        // Create tables
-        this.db!.serialize(() => {
-          this.db!.run(`
-            CREATE TABLE IF NOT EXISTS embeddings (
-              id TEXT PRIMARY KEY,
-              turn_number INTEGER,
-              message TEXT,
-              role TEXT,
-              embedding BLOB,
-              timestamp TEXT,
-              tokens INTEGER,
-              task TEXT
-            )
-          `);
-
-          this.db!.run(`
-            CREATE INDEX IF NOT EXISTS idx_timestamp ON embeddings(timestamp);
-          `);
-
-          this.db!.run(`
-            CREATE INDEX IF NOT EXISTS idx_task ON embeddings(task);
-          `);
+        // Create tables with proper callback chain
+        this.db!.run(`
+          CREATE TABLE IF NOT EXISTS embeddings (
+            id TEXT PRIMARY KEY,
+            turn_number INTEGER,
+            message TEXT,
+            role TEXT,
+            embedding BLOB,
+            timestamp TEXT,
+            tokens INTEGER,
+            task TEXT
+          )
+        `, (err) => {
+          if (err) { reject(err); return; }
+          
+          this.db!.run(`CREATE INDEX IF NOT EXISTS idx_timestamp ON embeddings(timestamp)`, (err) => {
+            if (err) { reject(err); return; }
+            
+            this.db!.run(`CREATE INDEX IF NOT EXISTS idx_task ON embeddings(task)`, (err) => {
+              if (err) reject(err);
+              else resolve();
+            });
+          });
         });
-
-        resolve();
       });
     });
   }
@@ -179,8 +178,10 @@ export class VectorStore {
           const results: SearchResult[] = [];
           
           for (const row of rows) {
-            const storedEmbedding = new Float32Array(row.embedding);
-            const similarity = this.cosineSimilarity(embedding, Array.from(storedEmbedding));
+            // Convert Buffer back to Float32Array then to regular array
+            const buffer = row.embedding as Buffer;
+            const storedEmbedding = Array.from(new Float32Array(buffer.buffer, buffer.byteOffset, buffer.length / 4));
+            const similarity = this.cosineSimilarity(embedding, storedEmbedding);
             
             results.push({
               id: row.id,
@@ -239,13 +240,15 @@ export class VectorStore {
   }
 
   private cosineSimilarity(a: number[], b: number[]): number {
-    if (a.length !== b.length) return 0;
+    // Handle size mismatch by using the smaller length
+    const len = Math.min(a.length, b.length);
+    if (len === 0) return 0;
 
     let dotProduct = 0;
     let normA = 0;
     let normB = 0;
 
-    for (let i = 0; i < a.length; i++) {
+    for (let i = 0; i < len; i++) {
       dotProduct += a[i] * b[i];
       normA += a[i] * a[i];
       normB += b[i] * b[i];

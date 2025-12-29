@@ -161,10 +161,11 @@ export class InstructionLoader {
 
     const sections = this.parseMarkdownSections(content);
 
-    // Parse roles
+    // Parse roles - handle bold markdown format
     const rolesSection = sections['Roles'] || sections['roles'] || [];
     rolesSection.forEach(line => {
-      const match = line.match(/^-\s*\*\*(.+?)\*\*:\s*(.+)$/);
+      // Match **Role**: description format (after list marker removal)
+      const match = line.match(/^\*\*(.+?)\*\*:\s*(.+)$/);
       if (match) {
         const [, role, description] = match;
         instructions.roles[role] = [description];
@@ -198,7 +199,9 @@ export class InstructionLoader {
         currentSection = trimmed.replace(/^#+\s*/, '');
         currentContent = [];
       } else if (currentSection && trimmed) {
-        currentContent.push(trimmed);
+        // Remove leading list markers (-, *, numbers)
+        const cleanedLine = trimmed.replace(/^[-*]\s+/, '').replace(/^\d+\.\s+/, '');
+        currentContent.push(cleanedLine);
       }
     }
 

@@ -62,6 +62,7 @@
     "compile": "rimraf dist && tsc -p ./tsconfig.json",
     "watch": "tsc -p ./tsconfig.json -w",
     "package": "npx @vscode/vsce package --no-dependencies",
+    "test": "vitest run",
     "lint": "echo \"No lint configured\""
   },
   "devDependencies": {
@@ -69,7 +70,8 @@
     "@types/vscode": "^1.107.0",
     "rimraf": "^6.1.2",
     "typescript": "^5.7.2",
-    "@vscode/vsce": "^3.2.1"
+    "@vscode/vsce": "^3.2.1",
+    "vitest": "^4.0.15"
   },
   "activationEvents": [
     "onStartupFinished",

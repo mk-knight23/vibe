@@ -107,42 +107,55 @@ export class ApiClient {
   }
   
   /**
-   * Send chat request to current AI provider
-   * 
+   * Send chat request to current AI provider with retry logic
+   *
    * @async
    * @param {any[]} messages - Conversation history
    * @param {string} model - Model identifier to use
    * @param {ChatOptions} options - Additional chat configuration
    * @returns {Promise<any>} AI response
-   * @throws {Error} If provider is unknown or request fails
+   * @throws {Error} If provider is unknown or all retries fail
    */
   async chat(messages: any[], model: string, options: ChatOptions = {}): Promise<any> {
-    try {
-      // Validate inputs
-      if (!messages || messages.length === 0) {
-        throw new Error('Messages array cannot be empty');
-      }
-      if (!model || model.trim() === '') {
-        throw new Error('Model identifier is required');
-      }
-
-      // Route to appropriate provider
-      switch (this.provider) {
-        case 'openrouter':
-          return await openRouterChat(messages, model, options);
-        case 'megallm':
-          return await megaLLMChat(messages, model, options);
-        case 'agentrouter':
-          return await agentRouterChat(messages, model, options);
-        case 'routeway':
-          return await routewayChat(messages, model, options);
-        default:
-          throw new Error(`Unknown provider: ${this.provider}`);
-      }
-    } catch (error: any) {
-      // Enhance error message with context
-      throw new Error(`Chat request failed (${this.provider}/${model}): ${error.message}`);
+    // Validate inputs
+    if (!messages || messages.length === 0) {
+      throw new Error('Messages array cannot be empty');
     }
+    if (!model || model.trim() === '') {
+      throw new Error('Model identifier is required');
+    }
+
+    const maxRetries = 3;
+    let lastError: Error = new Error('Unknown error');
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        // Route to appropriate provider
+        switch (this.provider) {
+          case 'openrouter':
+            return await openRouterChat(messages, model, options);
+          case 'megallm':
+            return await megaLLMChat(messages, model, options);
+          case 'agentrouter':
+            return await agentRouterChat(messages, model, options);
+          case 'routeway':
+            return await routewayChat(messages, model, options);
+          default:
+            throw new Error(`Unknown provider: ${this.provider}`);
+        }
+      } catch (error: any) {
+        lastError = error;
+        if (attempt < maxRetries - 1) {
+          // Wait with exponential backoff
+          const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+      }
+    }
+
+    // All retries failed
+    throw new Error(`Chat request failed after ${maxRetries} attempts (${this.provider}/${model}): ${lastError.message}`);
   }
 }
 

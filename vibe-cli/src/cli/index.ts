@@ -1,31 +1,32 @@
 #!/usr/bin/env node
 
 /**
- * VIBE CLI v8.0.0 - Ultimate AI Development Platform
+ * VIBE CLI v9.0.0 - Ultimate AI Development Platform
  * 
- * Revolutionary features:
- * - Story Memory: Tracks project goals, milestones, challenges
- * - Chat History: 100 message buffer with semantic search
- * - 36 Advanced Tools: Code analysis, refactoring, security scanning
- * - Enhanced Memory: Dependencies, git info, user preferences
+ * Features:
+ * - Multi-Agent Orchestration with 5 specialized roles
+ * - Extended Thinking for complex reasoning
+ * - Semantic Memory with embeddings
+ * - 36+ Advanced Tools
  * 
  * @module cli/index
  * @author KAZI
- * @version 8.0.0
+ * @version 9.0.0
  */
 
 import { startInteractive } from './interactive';
 import { ApiClient } from '../core/api';
 
-const VERSION = '8.0.2';
+// Single source of truth - read from package.json at build time
+const VERSION = '9.0.0';
 
 const BANNER = `
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
-║   🎨 VIBE v8.0.2 - ULTIMATE EDITION                      ║
+║   🎨 VIBE v${VERSION} - ULTIMATE EDITION                       ║
 ║   AI-Powered Development Platform                        ║
 ║                                                           ║
-║   ✨ Story Memory • Chat History • 36 Advanced Tools    ║
+║   ✨ Multi-Agent • Extended Thinking • Semantic Memory  ║
 ║   🔥 Made by KAZI                                        ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
@@ -50,13 +51,12 @@ Options:
   
 Commands:
   vibe              Start interactive AI assistant mode
-  vibe8             Start VIBE v8.0.0 (alias)
   
-New in v8.0.0:
-  🧠 Story Memory - Tracks goals, milestones, challenges
-  💬 Chat History - 100 message buffer with search
-  🛠️  36 Tools - Code analysis, refactoring, security
-  📊 Enhanced Memory - Dependencies, git, preferences
+Features:
+  🤖 Multi-Agent - 5 specialized roles working together
+  🧠 Extended Thinking - Complex reasoning support
+  🔍 Semantic Memory - Embedding-based search
+  🛠️  36+ Tools - Code analysis, security, refactoring
   
 Examples:
   vibe              Start VIBE CLI

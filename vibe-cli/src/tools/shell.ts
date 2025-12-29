@@ -3,8 +3,10 @@ import { promisify } from 'util';
 import path from 'path';
 
 import { detectOS, isDestructiveCommand } from '../utils/os-detect';
+import { validateCommand as validateSecurity, AuditLogger, getRiskIndicator, isDryRun } from '../core/security';
 
 const execAsync = promisify(exec);
+const auditLogger = new AuditLogger();
 
 interface ShellResult {
   command: string;
@@ -16,6 +18,7 @@ interface ShellResult {
   signal?: string;
   backgroundPIDs?: number[];
   sandboxed?: boolean;
+  riskLevel?: string;
 }
 
 export async function runShellCommand(
@@ -24,11 +27,48 @@ export async function runShellCommand(
   directory?: string,
   streamOutput?: (type: 'stdout' | 'stderr', data: string) => void
 ): Promise<ShellResult> {
-  // Safety check for destructive commands
+  const cwd = directory ? path.resolve(process.cwd(), directory) : process.cwd();
+  
+  // Security validation
+  const validation = validateSecurity(command);
+  
+  if (!validation.allowed) {
+    auditLogger.log({
+      action: 'shell_command',
+      command,
+      riskLevel: validation.riskLevel,
+      approved: false,
+      result: 'blocked'
+    });
+    
+    return {
+      command,
+      directory: cwd,
+      stdout: '',
+      stderr: `${getRiskIndicator(validation.riskLevel)} Command blocked: ${validation.reason}`,
+      error: validation.reason,
+      exitCode: 1,
+      riskLevel: validation.riskLevel
+    };
+  }
+
+  // Dry-run mode
+  if (isDryRun()) {
+    return {
+      command,
+      directory: cwd,
+      stdout: `[DRY-RUN] Would execute: ${command}`,
+      stderr: '',
+      exitCode: 0,
+      riskLevel: validation.riskLevel
+    };
+  }
+
+  // Legacy safety check
   if (isDestructiveCommand(command)) {
     return {
       command,
-      directory: directory || process.cwd(),
+      directory: cwd,
       stdout: '',
       stderr: 'Destructive command blocked for safety',
       error: 'This command is potentially destructive and requires manual confirmation',
@@ -37,7 +77,6 @@ export async function runShellCommand(
   }
 
   const osType = detectOS();
-  const cwd = directory ? path.resolve(process.cwd(), directory) : process.cwd();
   const sandboxed = false;
 
   const result: ShellResult = {
@@ -47,7 +86,8 @@ export async function runShellCommand(
     stderr: '',
     exitCode: null,
     backgroundPIDs: [],
-    sandboxed
+    sandboxed,
+    riskLevel: validation.riskLevel
   };
 
   try {

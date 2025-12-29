@@ -212,41 +212,23 @@ What's the next step? Respond in JSON:
   }
 
   private async executeAction(parsed: any): Promise<any> {
-    const safety = null; // Disabled
-    
     switch (parsed.action) {
       case 'edit_files':
         return await this.editor.editMultipleFiles(parsed.params.files);
       case 'run_command':
-        return { error: 'Command execution disabled' };
+        return { error: 'Command execution requires approval - use shell tool' };
       case 'spawn_agent':
-        return { agentId: `sub-${Date.now()}` };
+        return { agentId: `sub-${Date.now()}`, status: 'coming_soon' };
       case 'complete':
         return { success: true };
       default:
-        return { error: 'Unknown action' };
+        return { error: `Unknown action: ${parsed.action}` };
     }
   }
 
-  private async spawnSubAgent(config: any): Promise<void> {
-    const pool = null; // Disabled
-    
-    if (false && false) {
-      const subAgent = new AdvancedAgent(this.client, this.model);
-      this.subAgents.set(config.agentId, subAgent);
-      // pool.spawn(config.agentId);
-      
-      // Execute sub-agent in background
-      subAgent.execute({
-        goal: config.goal,
-        maxRuntime: 600000, // 10 minutes
-        parallelAgents: 0,
-        selfTest: false,
-        autoFix: false
-      }).finally(() => {
-        // pool.release(config.agentId);
-      });
-    }
+  private async spawnSubAgent(_config: any): Promise<void> {
+    // Sub-agent spawning - Coming Soon
+    console.log('⚠️ Sub-agent spawning is coming soon');
   }
 
   private async runSelfTest(): Promise<void> {
@@ -287,21 +269,14 @@ export class CompleteAgentSystem {
   }
 
   async spawnAgent(parentId: string, config: AgentConfig): Promise<string> {
-    const pool = null; // Disabled
+    // Sub-agent spawning - Coming Soon
+    console.log('⚠️ Parallel agent spawning is coming soon');
     
-    if (!false) {
-      throw new Error('Agent pool full. Max parallel agents reached.');
-    }
-
     const agentId = `${parentId}-sub-${Date.now()}`;
     const agent = new AdvancedAgent(this.client, this.model);
     
     this.agents.set(agentId, agent);
-    // pool.spawn(agentId);
-    
-    agent.execute(config).finally(() => {
-      // pool.release(agentId);
-    });
+    agent.execute(config);
 
     return agentId;
   }

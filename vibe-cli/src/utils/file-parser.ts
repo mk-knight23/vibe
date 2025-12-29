@@ -11,14 +11,26 @@ export function parseMarkdownResponse(response: string, userInput: string): {
     shellCommands: [] as string[]
   };
 
-  // Extract project name from user input
-  const projectMatch = userInput.match(/(?:create|build|make|generate|scaffold)\s+(?:a\s+)?(?:python\s+|react\s+|node\.?js\s+|html\s+|vue\s+|angular\s+)?(?:app|application|project|game|website|api)?(?:\s+(?:called|named)\s+)?["']?([a-zA-Z0-9_-]+)["']?/i);
-  if (projectMatch) {
-    result.projectName = projectMatch[1];
+  // Extract project name - ONLY from explicit "called X" or "named X" patterns
+  const RESERVED_WORDS = new Set([
+    'a', 'an', 'the', 'my', 'new', 'simple', 'basic', 'advanced', 'complex',
+    'web', 'app', 'api', 'node', 'react', 'vue', 'angular', 'python', 'html',
+    'css', 'javascript', 'typescript', 'project', 'application', 'game',
+    'website', 'frontend', 'backend', 'full', 'stack', 'fullstack'
+  ]);
+
+  // Only match explicit naming: "called X" or "named X" or quoted names
+  const explicitNameMatch = userInput.match(/(?:called|named)\s+["']?([a-zA-Z][a-zA-Z0-9_-]{2,})["']?/i);
+  const quotedNameMatch = userInput.match(/["']([a-zA-Z][a-zA-Z0-9_-]{2,})["']/);
+  
+  if (explicitNameMatch && !RESERVED_WORDS.has(explicitNameMatch[1].toLowerCase())) {
+    result.projectName = explicitNameMatch[1];
+  } else if (quotedNameMatch && !RESERVED_WORDS.has(quotedNameMatch[1].toLowerCase())) {
+    result.projectName = quotedNameMatch[1];
   } else {
-    // Fallback: extract from response
-    const nameMatch = response.match(/(?:project|app|game)\s+(?:name|called)\s*[:\-]?\s*["']?([a-zA-Z0-9_-]+)["']?/i);
-    if (nameMatch) {
+    // Fallback: extract from AI response
+    const nameMatch = response.match(/(?:project|app|game)\s+(?:name|called)\s*[:\-]?\s*["']?([a-zA-Z][a-zA-Z0-9_-]{2,})["']?/i);
+    if (nameMatch && !RESERVED_WORDS.has(nameMatch[1].toLowerCase())) {
       result.projectName = nameMatch[1];
     } else {
       result.projectName = 'generated-project';

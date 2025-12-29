@@ -1,3 +1,7 @@
+# Consolidated CI Pipeline
+# Runs on all PRs and pushes to main
+# Covers: lint, typecheck, test, build, security scan, bundle size
+
 name: CI
 
 on:
@@ -6,69 +10,134 @@ on:
   push:
     branches: [main]
 
+env:
+  NODE_VERSION: '18'
+
 jobs:
-  test-cli:
+  # ============================================
+  # CLI - Core Product
+  # ============================================
+  cli:
+    name: CLI
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: vibe-cli/package-lock.json
       
-      - name: Install CLI dependencies
+      - name: Install
         working-directory: vibe-cli
         run: npm ci
       
-      - name: Build CLI
+      - name: TypeCheck
+        working-directory: vibe-cli
+        run: npx tsc --noEmit
+      
+      - name: Build
         working-directory: vibe-cli
         run: npm run build
       
-      - name: Test CLI
+      - name: Test
         working-directory: vibe-cli
         run: npm test
+      
+      - name: Security Audit
+        working-directory: vibe-cli
+        run: npm audit --audit-level=high || true
+      
+      - name: Bundle Size
+        working-directory: vibe-cli
+        run: |
+          SIZE=$(du -sk dist | cut -f1)
+          echo "📦 CLI Bundle: ${SIZE}KB"
+          if [ "$SIZE" -gt 5000 ]; then
+            echo "::warning::Bundle size exceeds 5MB"
+          fi
 
-  test-web:
+  # ============================================
+  # Extension - VS Code
+  # ============================================
+  extension:
+    name: Extension
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: vibe-web/package-lock.json
-      
-      - name: Install Web dependencies
-        working-directory: vibe-web
-        run: npm ci
-      
-      - name: Build Web
-        working-directory: vibe-web
-        run: npm run build
-      
-      - name: TypeCheck Web
-        working-directory: vibe-web
-        run: npm run typecheck
-
-  test-extension:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '18'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: vibe-code/package-lock.json
       
-      - name: Install Extension dependencies
+      - name: Install
         working-directory: vibe-code
         run: npm ci
       
-      - name: Compile Extension
+      - name: Compile
         working-directory: vibe-code
         run: npm run compile
       
-      - name: Package Extension
+      - name: Test
+        working-directory: vibe-code
+        run: npm test
+      
+      - name: Package
         working-directory: vibe-code
         run: npm run package
+      
+      - name: Security Audit
+        working-directory: vibe-code
+        run: npm audit --audit-level=high || true
+      
+      - name: Extension Size
+        working-directory: vibe-code
+        run: |
+          SIZE=$(du -sk *.vsix 2>/dev/null | cut -f1 || echo "0")
+          echo "📦 Extension: ${SIZE}KB"
+          if [ "$SIZE" -gt 500 ]; then
+            echo "::warning::Extension exceeds 500KB"
+          fi
+
+  # ============================================
+  # Web - Documentation
+  # ============================================
+  web:
+    name: Web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: vibe-web/package-lock.json
+      
+      - name: Install
+        working-directory: vibe-web
+        run: npm ci
+      
+      - name: TypeCheck
+        working-directory: vibe-web
+        run: npm run typecheck
+      
+      - name: Build
+        working-directory: vibe-web
+        run: npm run build
+      
+      - name: Security Audit
+        working-directory: vibe-web
+        run: npm audit --audit-level=high || true
+      
+      - name: Bundle Size
+        working-directory: vibe-web
+        run: |
+          SIZE=$(du -sk dist | cut -f1)
+          echo "📦 Web Bundle: ${SIZE}KB"
+          if [ "$SIZE" -gt 1000 ]; then
+            echo "::warning::Web bundle exceeds 1MB"
+          fi

@@ -1,56 +1,123 @@
-name: VIBE Ecosystem Release
+# Release Pipeline
+# Triggered by version tags or manual dispatch
+# Publishes CLI to npm, Extension to VS Code Marketplace
+
+name: Release
 
 on:
   push:
     tags:
-      - 'vibe-cli-v*'
-      - 'vibe-code-v*'
-      - 'vibe-web-v*'
+      - 'cli-v*'
+      - 'ext-v*'
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      product:
+        description: 'Product to release'
+        required: true
+        type: choice
+        options:
+          - cli
+          - extension
+          - both
+
+env:
+  NODE_VERSION: '18'
 
 jobs:
+  # ============================================
+  # CLI Release to npm
+  # ============================================
   cli-release:
-    if: startsWith(github.ref, 'refs/tags/vibe-cli-v')
+    name: CLI → npm
     runs-on: ubuntu-latest
+    if: |
+      startsWith(github.ref, 'refs/tags/cli-v') || 
+      startsWith(github.ref, 'refs/tags/v') ||
+      (github.event_name == 'workflow_dispatch' && (inputs.product == 'cli' || inputs.product == 'both'))
     steps:
       - uses: actions/checkout@v4
+      
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
-      - run: cd vibe-cli && npm ci
-      - run: cd vibe-cli && npm run build
-      - run: cd vibe-cli && npm test
-      - run: cd vibe-cli && npm publish
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: 'https://registry.npmjs.org'
+      
+      - name: Install & Build
+        working-directory: vibe-cli
+        run: |
+          npm ci
+          npm run build
+      
+      - name: Test
+        working-directory: vibe-cli
+        run: npm test
+      
+      - name: Publish to npm
+        working-directory: vibe-cli
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          generate_release_notes: true
+          files: |
+            vibe-cli/dist/**/*
 
+  # ============================================
+  # Extension Release to VS Code Marketplace
+  # ============================================
   extension-release:
-    if: startsWith(github.ref, 'refs/tags/vibe-code-v')
+    name: Extension → Marketplace
     runs-on: ubuntu-latest
+    if: |
+      startsWith(github.ref, 'refs/tags/ext-v') || 
+      startsWith(github.ref, 'refs/tags/v') ||
+      (github.event_name == 'workflow_dispatch' && (inputs.product == 'extension' || inputs.product == 'both'))
     steps:
       - uses: actions/checkout@v4
+      
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
-      - run: cd vibe-code && npm ci
-      - run: cd vibe-code && npm run compile
-      - run: cd vibe-code && npm run package
-      - run: cd vibe-code && npx vsce publish
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-
-  web-deploy:
-    if: startsWith(github.ref, 'refs/tags/vibe-web-v')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+          node-version: ${{ env.NODE_VERSION }}
+      
+      - name: Install & Build
+        working-directory: vibe-code
+        run: |
+          npm ci
+          npm run compile
+      
+      - name: Test
+        working-directory: vibe-code
+        run: npm test
+      
+      - name: Package
+        working-directory: vibe-code
+        run: npm run package
+      
+      - name: Publish to VS Code Marketplace
+        working-directory: vibe-code
+        run: npx @vscode/vsce publish -p ${{ secrets.VSCE_PAT }}
+        continue-on-error: true
+      
+      - name: Publish to Open VSX
+        working-directory: vibe-code
+        run: npx ovsx publish -p ${{ secrets.OVSX_PAT }} *.vsix
+        continue-on-error: true
+      
+      - name: Upload VSIX Artifact
+        uses: actions/upload-artifact@v4
         with:
-          node-version: '18'
-      - run: cd vibe-web && npm ci
-      - run: cd vibe-web && npm run build
-      - uses: amondnet/vercel-action@v25
+          name: vibe-extension
+          path: vibe-code/*.vsix
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          working-directory: ./vibe-web
+          generate_release_notes: true
+          files: |
+            vibe-code/*.vsix

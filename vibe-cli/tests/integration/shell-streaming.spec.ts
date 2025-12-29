@@ -63,7 +63,8 @@ describe('Shell Command Streaming', () => {
 
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe('');
-    expect(result.stderr).toContain('Destructive command blocked');
+    // Accept either old or new error message format
+    expect(result.stderr).toMatch(/blocked|Destructive/i);
   });
 
   it('should handle background processes', async () => {

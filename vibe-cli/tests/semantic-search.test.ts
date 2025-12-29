@@ -121,12 +121,15 @@ describe('VectorStore', () => {
   });
 
   it('should perform semantic search with embeddings', async () => {
+    // Use a proper-sized embedding (matching Float32Array storage)
+    const testEmbedding = new Array(384).fill(0).map((_, i) => i * 0.001);
+    
     const chatTurn = {
       id: 'test-2',
       turn: 1,
       message: 'How to write tests',
       role: 'user' as const,
-      embedding: [0.5, 0.6, 0.7],
+      embedding: testEmbedding,
       metadata: {
         timestamp: new Date(),
         tokens: 15,
@@ -136,7 +139,7 @@ describe('VectorStore', () => {
 
     await vectorStore.insert(chatTurn);
 
-    const queryEmbedding = [0.5, 0.6, 0.7]; // Similar embedding
+    const queryEmbedding = testEmbedding; // Same embedding for high similarity
     const results = await vectorStore.semanticSearch(queryEmbedding, 5);
 
     expect(results.length).toBeGreaterThan(0);
