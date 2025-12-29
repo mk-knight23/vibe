@@ -1,5 +1,5 @@
 {
-  "name": "vibe-ai-cli",
+  "name": "@mk-knight23/vibe-ai-cli",
   "version": "10.0.0",
   "description": "The open source AI coding agent - 75+ providers, free models, LSP enabled, privacy-first",
   "main": "dist/cli/index.js",
@@ -166,6 +166,7 @@
   "type": "commonjs",
   "types": "./dist/cli/index.d.ts",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
   }
 }
