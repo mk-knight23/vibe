@@ -1,6 +1,5 @@
 /**
  * VIBE-CLI v12 - Modules Index
- * Export all available modules
  */
 export type { BaseModule, ModuleInfo, ModuleResult } from './base.module';
 export { CodeAssistantModule } from './code-assistant';

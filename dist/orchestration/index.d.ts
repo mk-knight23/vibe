@@ -45,7 +45,6 @@ export declare class Orchestrator {
     private debugging;
     private security;
     private deployment;
-    private webGeneration;
     constructor(config?: OrchestratorConfig);
     /**
      * Create an execution plan from an intent
@@ -64,14 +63,6 @@ export declare class Orchestrator {
     private handleDebug;
     private handleTesting;
     private handleDeploy;
-    /**
-     * Handle UI/web generation requests
-     */
-    private handleUI;
-    /**
-     * Handle API generation requests
-     */
-    private handleAPI;
     private handleGit;
     private handleSecurity;
     private handleAnalysis;
