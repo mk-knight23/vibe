@@ -1,11 +1,9 @@
 "use strict";
 /**
  * VIBE-CLI v12 - Modules Index
- * Export all available modules
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DeploymentModule = exports.SecurityModule = exports.DebuggingModule = exports.TestingModule = exports.CodeAssistantModule = void 0;
-// Module exports - lazy loading for each module
 var code_assistant_1 = require("./code-assistant");
 Object.defineProperty(exports, "CodeAssistantModule", { enumerable: true, get: function () { return code_assistant_1.CodeAssistantModule; } });
 var testing_1 = require("./testing");

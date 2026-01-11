@@ -1,29 +1,12 @@
 /**
- * VIBE CLI - Tools Module
- *
- * Unified tool system with:
- * - Tool registry with risk-based execution
- * - Sandboxed execution environment
- * - Diff-based file editing
- * - Checkpoint/undo support
- * - Security scanning
- *
- * Version: 13.0.0
+ * VIBE-CLI v12 - Tools Index
  */
 
-// Tool Registry
-export { ToolRegistry, toolRegistry, VibeToolRegistry } from './registry/index.js';
-
-// Sandbox System
-export { Sandbox, sandbox } from './sandbox.js';
-export type { SandboxConfig, SandboxResult, SandboxContext } from './sandbox.js';
-
-// Diff Editor
-export { DiffEditor, diffEditor, DiffGenerator, CheckpointSystem, checkpointSystem } from './diff-editor.js';
-
-// Security
-export { SecurityScanner as VibeSecurityScanner, securityScanner, CommandValidator as VibeCommandValidator, commandValidator } from '../security/index.js';
-export type { SecurityIssue as VibeSecurityIssue } from '../security/index.js';
-
-// Types
-export type { EditOperation, EditResult, MultiEditResult } from './diff-editor.js';
+export { VibeToolExecutor } from './executor';
+export { ToolRegistry, toolRegistry, VibeToolRegistry } from './registry/index';
+export { Sandbox, sandbox, VibeSandbox } from './sandbox';
+export type { SandboxConfig, SandboxResult } from './sandbox';
+export { DiffEditor, diffEditor, VibeDiffEditor, CheckpointSystem, checkpointSystem } from './diff-editor';
+export { securityScanner, commandValidator } from '../security/index';
+export type { VibeSecurityIssue } from '../security/index';
+export type { EditOperation, EditResult } from '../types';

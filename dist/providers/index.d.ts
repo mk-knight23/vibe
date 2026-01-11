@@ -1,15 +1,8 @@
 /**
- * VIBE CLI - Providers Module
- *
- * Unified provider system with adapter pattern.
- *
- * Version: 13.0.0
+ * VIBE-CLI v12 - Providers Index
  */
-export * from './adapters/base.adapter.js';
-export * from './adapters/openai.adapter.js';
-export * from './adapters/anthropic.adapter.js';
-export * from './adapters/google.adapter.js';
-export * from './adapters/ollama.adapter.js';
-export * from './adapters/openrouter.adapter.js';
-export { UnifiedProviderRouter, unifiedRouter } from './unified.router.js';
+export { VibeProviderRouter } from './router';
+export { UnifiedProviderRouter, unifiedRouter } from './unified.router';
+export { CompletionPrimitive } from './completion';
+export type { BaseProviderAdapter, ProviderResponse, ProviderOptions, ProviderError } from './adapters/base.adapter';
 //# sourceMappingURL=index.d.ts.map

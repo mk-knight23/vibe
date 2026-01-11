@@ -49,7 +49,6 @@ const testing_1 = require("../modules/testing");
 const debugging_1 = require("../modules/debugging");
 const security_1 = require("../modules/security");
 const deployment_1 = require("../modules/deployment");
-const web_generation_1 = require("../modules/web-generation");
 /**
  * V12 Orchestrator - manages agent execution
  */
@@ -64,7 +63,6 @@ class Orchestrator {
     debugging;
     security;
     deployment;
-    webGeneration;
     constructor(config = {}) {
         this.provider = config.provider || new router_1.VibeProviderRouter();
         this.memory = config.memory || new memory_1.VibeMemoryManager();
@@ -81,7 +79,6 @@ class Orchestrator {
         this.debugging = new debugging_1.DebuggingModule();
         this.security = new security_1.SecurityModule();
         this.deployment = new deployment_1.DeploymentModule();
-        this.webGeneration = new web_generation_1.WebGenerationModule();
     }
     /**
      * Create an execution plan from an intent
@@ -241,10 +238,6 @@ class Orchestrator {
                 case 'code_generation':
                 case 'code_assistant':
                     return await this.handleCodeGeneration(intent);
-                case 'api':
-                    return await this.handleAPI(intent);
-                case 'ui':
-                    return await this.handleUI(intent);
                 case 'refactor':
                     return await this.handleRefactor(intent);
                 case 'debug':
@@ -473,139 +466,6 @@ Be concise and practical.`;
             success: false,
             error: 'Deployment target not recognized',
             suggestion: 'Specify deployment target: gcp, aws, azure, heroku, vercel, etc.',
-        };
-    }
-    /**
-     * Handle UI/web generation requests
-     */
-    async handleUI(intent) {
-        // Extract parameters from the query
-        const query = intent.query.toLowerCase();
-        const originalQuery = intent.query;
-        // Determine the type of generation
-        let action = 'generate';
-        let name = '';
-        let type = 'react';
-        // Detect action type (order matters - check more specific first)
-        if (query.includes('component'))
-            action = 'component';
-        else if (query.includes('page'))
-            action = 'page';
-        else if (query.includes('layout'))
-            action = 'layout';
-        // Skip common words when looking for names
-        const skipWords = ['a', 'an', 'the', 'react', 'nextjs', 'vue', 'html', 'component', 'page', 'layout', 'dashboard', 'form', 'modal', 'called', 'named'];
-        // Try to extract name from various patterns
-        // Pattern 1: "create a [name] component" or "create a [name] page"
-        const nameBeforeKeywordPattern = /create\s+(?:a\s+)?(?:react|nextjs|vue|html)?\s+([A-Z][a-zA-Z0-9]*)\s*(?:component|page|layout|dashboard|button|form|modal)?/i;
-        // Pattern 2: "create [name]" - just the name
-        const simpleNamePattern = /(?:create|build|generate)\s+(?:a\s+)?([A-Z][a-zA-Z0-9]+)/i;
-        // Pattern 3: "called [name]" or "named [name]"
-        const calledNamePattern = /(?:called|named)\s+([A-Z][a-zA-Z0-9]+)/i;
-        // Try patterns in order
-        const patterns = [
-            { regex: nameBeforeKeywordPattern, group: 1 },
-            { regex: simpleNamePattern, group: 1 },
-            { regex: calledNamePattern, group: 1 },
-        ];
-        for (const { regex, group } of patterns) {
-            const match = originalQuery.match(regex);
-            if (match && match[group] && !skipWords.includes(match[group].toLowerCase())) {
-                name = match[group];
-                break;
-            }
-        }
-        // If still no name, try to get words between action keyword and UI keyword
-        if (!name) {
-            const words = originalQuery.split(/\s+/);
-            for (let i = 1; i < words.length; i++) {
-                const word = words[i].replace(/[^a-zA-Z]/g, '');
-                if (word && !skipWords.includes(word.toLowerCase()) && word.length > 1 && /^[A-Z]/.test(word)) {
-                    name = word;
-                    break;
-                }
-            }
-        }
-        // Detect type
-        if (query.includes('nextjs') || query.includes('next.js'))
-            type = 'nextjs';
-        else if (query.includes('vue'))
-            type = 'vue';
-        else if (query.includes('html') || query.includes('vanilla'))
-            type = 'html';
-        // If no name found, use a default based on action
-        if (!name) {
-            name = action === 'component' ? 'MyComponent' :
-                action === 'page' ? 'MyPage' :
-                    action === 'layout' ? 'MyLayout' : 'app';
-        }
-        // Execute the web generation module
-        const result = await this.webGeneration.execute({
-            action,
-            type,
-            name,
-            query: intent.query,
-        });
-        if (result.success) {
-            return {
-                success: true,
-                summary: `Generated ${result.data?.filesGenerated || 0} file(s) for ${name}`,
-                output: JSON.stringify(result.data?.files || [], null, 2),
-                changes: result.data?.files?.map((f) => ({
-                    file: f.path,
-                    type: f.type,
-                })),
-            };
-        }
-        return {
-            success: false,
-            error: result.error || 'UI generation failed',
-            suggestion: 'Try specifying what you want to create (e.g., "create a React button component")',
-        };
-    }
-    /**
-     * Handle API generation requests
-     */
-    async handleAPI(intent) {
-        const query = intent.query.toLowerCase();
-        // Extract parameters
-        let name = 'api';
-        let type = 'express';
-        let endpoint;
-        // Detect name
-        const nameMatch = intent.query.match(/create\s+(?:a\s+)?(?:api|endpoint|route)\s+(?:for\s+)?(\w+)/i);
-        if (nameMatch) {
-            name = nameMatch[1];
-        }
-        // Detect type
-        if (query.includes('nextjs') || query.includes('next.js'))
-            type = 'nextjs';
-        // Detect endpoint
-        const endpointMatch = intent.query.match(/\/(api\/)?([a-z0-9\/]+)/i);
-        if (endpointMatch) {
-            endpoint = '/' + endpointMatch[2];
-        }
-        const result = await this.webGeneration.execute({
-            action: 'api',
-            type,
-            name,
-            endpoint,
-            query: intent.query,
-        });
-        if (result.success) {
-            return {
-                success: true,
-                summary: `Generated API endpoint at ${result.data?.endpoint || `/${name.toLowerCase()}`}`,
-                output: JSON.stringify(result.data?.files || [], null, 2),
-                changes: result.data?.files?.map((f) => ({
-                    file: f.path,
-                    type: f.type,
-                })),
-            };
-        }
-        return {
-            success: false,
-            error: result.error || 'API generation failed',
         };
     }
     async handleGit(intent) {
