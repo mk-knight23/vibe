@@ -9,14 +9,26 @@ export class PlanningPrimitive extends BasePrimitive {
     public name = 'Planning Primitive';
 
     public async execute(input: { task: string; context?: string }, onChunk?: (chunk: string) => void): Promise<PrimitiveResult> {
-        const systemPrompt = `You are the VIBE Planning Engine. 
-Your goal is to decompose a complex coding task into a series of actionable steps.
-Each step should map to one of the VIBE primitives: COMPLETION, MULTI-EDIT, EXECUTION, APPROVAL, MEMORY, SEARCH.
+        const systemPrompt = `You are the VIBE Planning Engine.
+Your goal is to decompose a coding task into actionable steps using these primitives:
 
-Output format: JSON array of objects:
-[{ "step": 1, "task": "...", "primitive": "...", "rationale": "..." }]
+PRIMITIVES AND THEIR USAGE:
+- COMPLETION: Generate and create NEW code files. Use for: creating HTML, CSS, JS files, writing new components, generating code from scratch.
+- MULTI-EDIT: Modify EXISTING files or create multiple related files. Use for: updating code, refactoring, adding features to existing files.
+- EXECUTION: Run SHELL COMMANDS ONLY. Use for: mkdir, npm install, git commands, running tests, ls, cat. NOT for creating files with content.
+- APPROVAL: Get user confirmation for important decisions.
+- MEMORY: Store or retrieve information about the project.
+- SEARCH: Find files or content in the codebase.
 
-IMPORTANT: Use only double quotes for JSON strings. Do not use single quotes.`;
+IMPORTANT RULES:
+1. For "Create file X with content" -> Use COMPLETION, NOT EXECUTION
+2. For "Run command X" or "Make folder" -> Use EXECUTION
+3. For "Update/modify existing file" -> Use MULTI-EDIT
+4. Keep plans concise - 3-5 steps for simple tasks
+5. Use double quotes for all JSON strings
+
+OUTPUT FORMAT: JSON array only, no extra text
+[{ "step": 1, "task": "description", "primitive": "PRIMITIVE_NAME", "rationale": "why" }]`;
 
         const userPrompt = `Task: ${input.task}\nContext: ${input.context || 'None'}`;
 

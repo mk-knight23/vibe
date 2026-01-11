@@ -66,6 +66,7 @@ export class SearchPrimitive extends BasePrimitive {
     /**
      * Extract search terms from a task description.
      * Examples:
+     * - "Search for index.html file" -> "index.html"
      * - "Find documentation for Stripe integration" -> "Stripe"
      * - "Search for payment processing" -> "payment"
      */
@@ -74,30 +75,40 @@ export class SearchPrimitive extends BasePrimitive {
 
         const taskLower = task.toLowerCase();
 
-        // Common patterns to extract search terms
-        // "find X", "search for X", "look for X", "documentation for X", "integrate X"
+        // Priority 1: Look for file names (e.g., index.html, app.js)
+        const fileMatch = task.match(/(\w+\.\w+)/);
+        if (fileMatch) {
+            return fileMatch[1];
+        }
+
+        // Priority 2: Common patterns with stop words removed
+        // "find X", "search for X", "read X", "look for X"
         const patterns = [
-            /(?:find|search for|look for|documentation for|integrate|integrating)\s+["']?([a-zA-Z0-9_-]+)/i,
-            /([a-zA-Z0-9_-]+)\s+(?:documentation|integration|api|sdk)/i,
+            /(?:find|search for|look for|read|examine|analyze|check)\s+(?:the\s+)?(?:current\s+)?["']?([a-zA-Z0-9_.-]+)/i,
+            /(?:documentation for|integrate|integrating)\s+["']?([a-zA-Z0-9_-]+)/i,
+            /([a-zA-Z0-9_-]+)\s+(?:documentation|integration|api|sdk|file)/i,
         ];
+
+        // Stop words to skip
+        const stopWords = ['and', 'the', 'for', 'to', 'in', 'on', 'at', 'of', 'a', 'an', 'is', 'are', 'was', 'were'];
 
         for (const pattern of patterns) {
             const match = task.match(pattern);
-            if (match && match[1]) {
+            if (match && match[1] && !stopWords.includes(match[1].toLowerCase())) {
                 return match[1];
             }
         }
 
         // Fallback: extract notable keywords
-        const keywords = ['stripe', 'paypal', 'auth', 'database', 'api', 'payment', 'login', 'user'];
+        const keywords = ['stripe', 'paypal', 'auth', 'database', 'api', 'payment', 'login', 'user', 'html', 'css', 'javascript', 'index'];
         for (const keyword of keywords) {
             if (taskLower.includes(keyword)) {
                 return keyword;
             }
         }
 
-        // Last resort: use first significant word from task
-        const words = task.split(/\s+/).filter(w => w.length > 4);
+        // Last resort: use first significant word (not a stop word and > 4 chars)
+        const words = task.split(/\s+/).filter(w => w.length > 4 && !stopWords.includes(w.toLowerCase()));
         return words[0] || undefined;
     }
 }
