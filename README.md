@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-quick-start">Quick To Start</a> •
   <a href="#-core-commands">Commands</a> •
   <a href="#-features">Features</a> •
   <a href="#-architecture">Architecture</a> •
